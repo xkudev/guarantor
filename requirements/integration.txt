@@ -21,6 +21,7 @@ flake8-junit-report
 flake8-2020
 flake8-no-implicit-concat
 pylint-ignore>=2020.1013
+pylint<2.13
 mypy>=0.790
 isort
 

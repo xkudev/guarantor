@@ -12,9 +12,9 @@ from fastapi.staticfiles import StaticFiles
 
 
 class ModelName(str, enum.Enum):
-    alexnet = "alexnet"
-    resnet  = "resnet"
-    lenet   = "lenet"
+    ALEXNET = "alexnet"
+    RESNET  = "resnet"
+    LENET   = "lenet"
 
 
 app = fastapi.FastAPI()
@@ -23,7 +23,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
 async def root():
-    breakpoint()
     return {'message': "Hello World"}
 
 
