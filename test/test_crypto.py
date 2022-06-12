@@ -28,29 +28,27 @@ def test_against_myself():
             '1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN',
         ),
     ]:
-        k = BTC.parse.wif(wif)
-        assert k.address() == right_addr
+        key = BTC.parse.wif(wif)
+        assert key.address() == right_addr
 
         vk2 = BTC.parse.address(right_addr)
         assert vk2.address() == right_addr
 
         for i in range(1, 30, 10):
-            msg = "test message %s" % ('A' * i)
-            sig = BTC.msg.sign(k, msg, verbose=1)
+            msg = f"test message {'A' * i}"
+            sig = BTC.msg.sign(key, msg, verbose=1)
             assert right_addr in sig
 
             # check parsing works
-            m, a, s = BTC.msg.parse_signed(sig)
-            assert m == msg, m
-            assert a == right_addr, a
+            parsed_msg, parsed_addr, parsed_sig = BTC.msg.parse_signed(sig)
+            assert parsed_msg == msg, parsed_msg
+            assert parsed_addr == right_addr, parsed_addr
 
-            sig2 = BTC.msg.sign(k, msg, verbose=0)
+            sig2 = BTC.msg.sign(key, msg, verbose=0)
             assert sig2 in sig, (sig, sig2)
 
-            assert s == sig2, s
+            assert parsed_sig == sig2, parsed_sig
 
-            ok = BTC.msg.verify(k, sig2, msg)
-            assert ok
+            assert BTC.msg.verify(key, sig2, msg)
 
-            ok = BTC.msg.verify(k, sig2.encode('ascii'), msg)
-            assert ok
+            assert BTC.msg.verify(key, sig2.encode('ascii'), msg)
