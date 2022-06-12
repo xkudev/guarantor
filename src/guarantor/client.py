@@ -46,7 +46,7 @@ class HttpClient:
 
     def request(
         self,
-        *path_parts: tuple[str, ...],
+        *path_parts: str,
         method : str,
         headers: Headers | None = None,
         payload: str     | None = None,
