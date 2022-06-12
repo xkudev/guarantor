@@ -1,4 +1,4 @@
-from gaurantor import crypto
+from guarantor import crypto
 from pycoin.symbols.btc import network as BTC
 
 ADDRESS = "bc1qt3y9cxcw93w9h4u0n9sm30p6n4sn4t88hx2rxu"
