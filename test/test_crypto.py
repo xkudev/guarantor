@@ -110,7 +110,7 @@ def test_verify():
 
 
 def test_compatibility():
-    message = FIXTURE["positive"]["address"]
-    address = FIXTURE["positive"]["message"]
+    address = FIXTURE["positive"]["address"]
+    message = FIXTURE["positive"]["message"]
     signature = FIXTURE["positive"]["signature"]
     assert crypto.verify(address, signature, message)
