@@ -44,14 +44,7 @@ classifiers = [
     # "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python",
 
-    # "Programming Language :: Python :: 2",
     "Programming Language :: Python :: 3",
-
-    # Or more specific:
-    # "Programming Language :: Python :: 2.7",
-    # "Programming Language :: Python :: 3.6",
-    # "Programming Language :: Python :: 3.7",
-    # "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Software Development :: Libraries",
@@ -80,7 +73,7 @@ setuptools.setup(
     install_requires=install_requires,
     entry_points="""
         [console_scripts]
-        guarantor=guarantor.__main__:cli
+        guarantor=guarantor.cli:cli
     """,
     python_requires=python_requires,
     zip_safe=True,
