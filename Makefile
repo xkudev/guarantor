@@ -24,9 +24,13 @@ include Makefile.bootstrapit.make
 
 ## -- Extra/Custom/Project Specific Tasks --
 
-## Dummy target for illustration
-##    This is just to illustrate how to add your
-##    extra targets outside of the main Makefile.
-.PHONY: demo
-demo:
-	echo "Your custom make target here"
+## Serve API in development mode
+.PHONY: api_serve
+api_serve:
+	$(DEV_ENV_PY) -m uvicorn guarantor.app:app --reload
+
+
+## Serve API in development mode
+.PHONY: api_serve_prod
+api_serve_prod:
+	$(DEV_ENV_PY) -m uvicorn guarantor.app:app

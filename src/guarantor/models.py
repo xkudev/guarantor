@@ -3,13 +3,40 @@
 #
 # Copyright (c) 2022 xkudev (xkudev@pm.me) - MIT License
 # SPDX-License-Identifier: MIT
-
+# import enum
 import pydantic
 
 
-class UnsignedIdentity(pydantic.BaseModel):
-    pass
+class Identity(pydantic.BaseModel):
+    pubkey: str
 
 
-class SignedIdentity(pydantic.BaseModel):
-    pass
+# class DocumentType(str, enum.Enum):
+#     EVIDENCE = "evidence"
+
+
+# class GenericDocument(pydantic.BaseModel):
+#     pass
+
+
+# class PolicyOffer(pydantic.BaseModel):
+#     pass
+
+
+# class PolicyContract(pydantic.BaseModel):
+#     pass
+
+
+# class ClaimRole(str, enum.Enum):
+#     PLAINTIFF = "plaintiff"
+#     DEFENDANT = "defendant"
+#     JUDGE     = "judge"
+
+
+# class ClaimAssociation(pydantic.BaseModel):
+#     identity: Identity
+#     role    : ClaimRole
+
+
+# class PolicyClaim(pydantic.BaseModel):
+#     pass
