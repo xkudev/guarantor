@@ -1,42 +1,16 @@
-ADDRESS     = "bc1qt3y9cxcw93w9h4u0n9sm30p6n4sn4t88hx2rxu"
+from pycoin.symbols.btc import network as BTC
+
+ADDRESS = "bc1qt3y9cxcw93w9h4u0n9sm30p6n4sn4t88hx2rxu"
 PUBLIC_KEYS = "03eaa795767400e53e8b63685b41dd512eb7de7fd5d7a51f5657003685a43bd92d"
 PRIVATE_KEY = "p2wpkh:L23nLNHmLoCkK1biBmY7z3tdY8qXJAkcerNP3SoxoTVHDgC5FzDr"
-MESSAGE     = "TEST_MESSAGE"
-SIGNATURE   = (
-    "HxVrktEEv/3tLOUJ19HijkkAFvlzUV6rh5HFKfyyiPnP" "VcoBCrqivZBOGNffIoeds5nWBCQOXMY6C03qXQiYJZI="
+MESSAGE = "TEST_MESSAGE"
+SIGNATURE = (
+    "HxVrktEEv/3tLOUJ19HijkkAFvlzUV6rh5HFKfyyiPnPVcoBCrqivZBOGNffIoeds5nWBCQOXMY6C03qXQiYJZI="
 )
 ENCRYPTED = (
     "QklFMQJvsEjHP/ZXsK1yeZt2pMl3JV0Kmo/oZpHbD/68eMF5jHjUz7Twgq"
     "Ps0O3GyolvhZPAGfTK39N0Xi0eP4C4XFWOpUFUCduhc63p36g4sXbHDw=="
 )
-
-
-def __test_signing():
-
-    import binascii
-
-    from btctxstore import BtcTxStore
-
-    api     = BtcTxStore(testnet=True, dryrun=True)  # use testing setup for example
-    wif     = api.create_key()  # create new private key
-    address = api.get_address(wif)  # get private key address
-    data    = binascii.hexlify(b"messagetext")  # hexlify messagetext
-
-    # sign data with private key
-    signature = api.sign_data(wif, data)
-    print("signature:", signature)
-
-    # verify signature (no public or private key needed)
-    isvalid = api.verify_signature(address, signature, data)
-    print("valid signature" if isvalid else "invalid signature")
-    assert isvalid
-
-
-import textwrap
-import unittest
-
-from pycoin.symbols.btc import network as BTC
-from pycoin.symbols.xtn import network as XTN
 
 
 def test_against_myself():
@@ -67,7 +41,7 @@ def test_against_myself():
 
             # check parsing works
             m, a, s = BTC.msg.parse_signed(sig)
-            assert m == msg       , m
+            assert m == msg, m
             assert a == right_addr, a
 
             sig2 = BTC.msg.sign(k, msg, verbose=0)

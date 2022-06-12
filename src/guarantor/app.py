@@ -31,9 +31,9 @@ async def root():
 @app.get("/v1/info", response_class=http_utils.JSONResponse)
 async def info():
     return {
-        'name'   : "guarantor",
+        'name': "guarantor",
         'version': guarantor.__version__,
-        'time'   : time.time(),
+        'time': time.time(),
         'iso8601': dt.datetime.utcnow().isoformat(),
     }
 
