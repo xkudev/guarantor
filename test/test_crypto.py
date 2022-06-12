@@ -1,10 +1,10 @@
 from pycoin.symbols.btc import network as BTC
 
-ADDRESS = "bc1qt3y9cxcw93w9h4u0n9sm30p6n4sn4t88hx2rxu"
+ADDRESS     = "bc1qt3y9cxcw93w9h4u0n9sm30p6n4sn4t88hx2rxu"
 PUBLIC_KEYS = "03eaa795767400e53e8b63685b41dd512eb7de7fd5d7a51f5657003685a43bd92d"
 PRIVATE_KEY = "p2wpkh:L23nLNHmLoCkK1biBmY7z3tdY8qXJAkcerNP3SoxoTVHDgC5FzDr"
-MESSAGE = "TEST_MESSAGE"
-SIGNATURE = (
+MESSAGE     = "TEST_MESSAGE"
+SIGNATURE   = (
     "HxVrktEEv/3tLOUJ19HijkkAFvlzUV6rh5HFKfyyiPnPVcoBCrqivZBOGNffIoeds5nWBCQOXMY6C03qXQiYJZI="
 )
 ENCRYPTED = (
@@ -41,7 +41,7 @@ def test_against_myself():
 
             # check parsing works
             parsed_msg, parsed_addr, parsed_sig = BTC.msg.parse_signed(sig)
-            assert parsed_msg == msg, parsed_msg
+            assert parsed_msg  == msg       , parsed_msg
             assert parsed_addr == right_addr, parsed_addr
 
             sig2 = BTC.msg.sign(key, msg, verbose=0)

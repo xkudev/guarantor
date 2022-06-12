@@ -15,9 +15,9 @@ class HttpClient:
     """Python interface, wrapping the Rest API."""
 
     def __init__(self, host: str, api_version: str = "v1", verbose: int = 0) -> None:
-        self.host = host
+        self.host        = host
         self.api_version = api_version
-        self.verbose = verbose
+        self.verbose     = verbose
 
     def request(
         self, endpoint: str, method: str = 'GET', headers: Headers | None = None
