@@ -110,6 +110,23 @@ def test_verify():
 
 
 def test_compatibility():
+    for wif, right_addr in [
+        (
+            'L4gXBvYrXHo59HLeyem94D9yLpRkURCHmCwQtPuWW9m6o1X8p8sp',
+            '1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv',
+        ),
+        (
+            '5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss',
+            '1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN',
+        ),
+    ]:
+        for i in range(1, 30, 10):
+            msg = f"test message {'A' * i}"
+            sig = crypto.sign(msg, wif)
+            assert crypto.verify(right_addr, sig, message)
+
+
+def __test_fixtures():
     address = FIXTURE["positive"]["address"]
     message = FIXTURE["positive"]["message"]
     signature = FIXTURE["positive"]["signature"]
