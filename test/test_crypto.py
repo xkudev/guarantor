@@ -1,10 +1,12 @@
 from pycoin.symbols.btc import network as BTC
+from gaurantor import crypto
 
-ADDRESS     = "bc1qt3y9cxcw93w9h4u0n9sm30p6n4sn4t88hx2rxu"
+
+ADDRESS = "bc1qt3y9cxcw93w9h4u0n9sm30p6n4sn4t88hx2rxu"
 PUBLIC_KEYS = "03eaa795767400e53e8b63685b41dd512eb7de7fd5d7a51f5657003685a43bd92d"
 PRIVATE_KEY = "p2wpkh:L23nLNHmLoCkK1biBmY7z3tdY8qXJAkcerNP3SoxoTVHDgC5FzDr"
-MESSAGE     = "TEST_MESSAGE"
-SIGNATURE   = (
+MESSAGE = "TEST_MESSAGE"
+SIGNATURE = (
     "HxVrktEEv/3tLOUJ19HijkkAFvlzUV6rh5HFKfyyiPnPVcoBCrqivZBOGNffIoeds5nWBCQOXMY6C03qXQiYJZI="
 )
 ENCRYPTED = (
@@ -13,11 +15,7 @@ ENCRYPTED = (
 )
 
 
-def test_against_myself():
-    """
-    Test code that verifies against ourselves only. Useful but not so great.
-    """
-
+def test_pycoin():
     for wif, right_addr in [
         (
             'L4gXBvYrXHo59HLeyem94D9yLpRkURCHmCwQtPuWW9m6o1X8p8sp',
@@ -41,7 +39,7 @@ def test_against_myself():
 
             # check parsing works
             parsed_msg, parsed_addr, parsed_sig = BTC.msg.parse_signed(sig)
-            assert parsed_msg  == msg       , parsed_msg
+            assert parsed_msg == msg, parsed_msg
             assert parsed_addr == right_addr, parsed_addr
 
             sig2 = BTC.msg.sign(key, msg, verbose=0)
@@ -52,3 +50,21 @@ def test_against_myself():
             assert BTC.msg.verify(key, sig2, msg)
 
             assert BTC.msg.verify(key, sig2.encode('ascii'), msg)
+
+
+def test_sign():
+    for wif, right_addr in [
+        (
+            'L4gXBvYrXHo59HLeyem94D9yLpRkURCHmCwQtPuWW9m6o1X8p8sp',
+            '1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv',
+        ),
+        (
+            '5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss',
+            '1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN',
+        ),
+    ]:
+        key = BTC.parse.wif(wif)
+        for i in range(1, 30, 10):
+            msg = f"test message {'A' * i}"
+            sig = crypto.sign(msg, wif)
+            assert BTC.msg.verify(key, sig, msg)
