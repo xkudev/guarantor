@@ -1,3 +1,4 @@
+import binascii
 from guarantor import crypto
 from pycoin.symbols.btc import network as BTC
 
@@ -11,6 +12,34 @@ Address: 1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN
 HCT1esk/TWlF/o9UNzLDANqsPXntkMErf7erIrjH5IBOZP98cNcmWmnW0GpSAi3wbr6CwpUAN4ctNn1T71UBwSc=
 -----END BITCOIN SIGNATURE-----
 '''
+
+
+FIXTURE = {
+    "positive": {
+        "address": "mkRqiCnLFFsEH6ezsE1RiMxEjLRXZzWjwe",
+        "message": binascii.hexlify(b"testmessagee"),
+        "signature": "H8wq7z8or7jGGT06ZJ0dC1+wnmRLY/fWnW2SRSRPtypaBAFJAtYhcOl+0jyjujEio91/7eFEW9tuM/WZOusSEGc=",
+        "valid": True,
+    },
+    "incorrect_address": {
+        "address": "mkRqiCnLFFsEH6ezsE2RiMxEjLRXZzWjwe",
+        "message": binascii.hexlify(b"testmessagee"),
+        "signature": "H8wq7z8or7jGGT06ZJ0dC1+wnmRLY/fWnW2SRSRPtypaBAFJAtYhcOl+0jyjujEio91/7eFEW9tuM/WZOusSEGc=",
+        "valid": False,
+    },
+    "incorrect_signature": {
+        "address": "mkRqiCnLFFsEH6ezsE1RiMxEjLRXZzWjwe",
+        "message": binascii.hexlify(b"testmessagee"),
+        "signature": "H8wq7z8or7jGGT06ZJ1dC1+wnmRLY/fWnW2SRSRPtypaBAFJAtYhcOl+0jyjujEio91/7eFEW9tuM/WZOusSEGc=",
+        "valid": False,
+    },
+    "incorrect_data": {
+        "address": "mkRqiCnLFFsEH6ezsE1RiMxEjLRXZzWjwe",
+        "message": binascii.hexlify(b"testmessagee"),
+        "signature": "H8wq7z8or7jGGT06ZJ0dC1+wnmRLY/fWnW2SRSRPtypaBAFJAtYhcOl+0jyjujEio91/7eFEW9tuM/WZOusSEGc=",
+        "valid": False,
+    }
+}
 
 
 def test_pycoin():
@@ -76,4 +105,11 @@ def test_verify():
         'HCT1esk/TWlF/o9UNzLDANqsPXntkMErf7erIrjH5IBOZ'
         'P98cNcmWmnW0GpSAi3wbr6CwpUAN4ctNn1T71UBwSc='
     )
+    assert crypto.verify(address, signature, message)
+
+
+def test_compatibility():
+    message = FIXTURE["positive"]["address"]
+    address = FIXTURE["positive"]["message"]
+    signature = FIXTURE["positive"]["signature"]
     assert crypto.verify(address, signature, message)
