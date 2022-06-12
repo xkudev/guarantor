@@ -17,7 +17,8 @@ HCT1esk/TWlF/o9UNzLDANqsPXntkMErf7erIrjH5IBOZP98cNcmWmnW0GpSAi3wbr6CwpUAN4ctNn1T
 FIXTURE = {
     "positive": {
         "address": "mkRqiCnLFFsEH6ezsE1RiMxEjLRXZzWjwe",
-        "message": binascii.hexlify(b"testmessagee"),
+        # "message": binascii.hexlify(b"testmessagee"),
+        "message": "testmessagee",
         "signature": "H8wq7z8or7jGGT06ZJ0dC1+wnmRLY/fWnW2SRSRPtypaBAFJAtYhcOl+0jyjujEio91/7eFEW9tuM/WZOusSEGc=",
         "valid": True,
     },
