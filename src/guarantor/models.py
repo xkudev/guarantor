@@ -3,40 +3,17 @@
 #
 # Copyright (c) 2022 xkudev (xkudev@pm.me) - MIT License
 # SPDX-License-Identifier: MIT
-# import enum
-import pydantic
+import sqlalchemy as sa
+
+# from guarantor import schemas
+from guarantor import database
+
+# from sqlalchemy import Column, ForeignKey, Integer, String, Float
 
 
-class Identity(pydantic.BaseModel):
-    pubkey: str
+class Identity(database.Base):
+    __tablename__ = "identities"
 
-
-# class DocumentType(str, enum.Enum):
-#     EVIDENCE = "evidence"
-
-
-# class GenericDocument(pydantic.BaseModel):
-#     pass
-
-
-# class PolicyOffer(pydantic.BaseModel):
-#     pass
-
-
-# class PolicyContract(pydantic.BaseModel):
-#     pass
-
-
-# class ClaimRole(str, enum.Enum):
-#     PLAINTIFF = "plaintiff"
-#     DEFENDANT = "defendant"
-#     JUDGE     = "judge"
-
-
-# class ClaimAssociation(pydantic.BaseModel):
-#     identity: Identity
-#     role    : ClaimRole
-
-
-# class PolicyClaim(pydantic.BaseModel):
-#     pass
+    dbid   = sa.Column(sa.Integer, primary_key=True, index=True)
+    pubkey = sa.Column(sa.String , nullable=False)
+    info   = sa.Column(sa.Text   , nullable=False)

@@ -27,10 +27,12 @@ include Makefile.bootstrapit.make
 ## Serve API in development mode
 .PHONY: api_serve
 api_serve:
+	$(DEV_ENV_PY) -m alembic upgrade head
 	$(DEV_ENV_PY) -m uvicorn guarantor.app:app --reload
 
 
 ## Serve API in development mode
 .PHONY: api_serve_prod
 api_serve_prod:
+	$(DEV_ENV_PY) -m alembic upgrade head
 	$(DEV_ENV_PY) -m uvicorn guarantor.app:app
