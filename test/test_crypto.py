@@ -123,7 +123,7 @@ def test_compatibility():
         for i in range(1, 30, 10):
             msg = f"test message {'A' * i}"
             sig = crypto.sign(msg, wif)
-            assert crypto.verify(right_addr, sig, message)
+            assert crypto.verify(right_addr, sig, msg)
 
 
 def __test_fixtures():
