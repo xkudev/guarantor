@@ -28,7 +28,7 @@ jobs:
         make conda
 
     - name: make lint
-      run: make lint
+      run: make lint_flake8
 
     - name: make mypy
       run: make mypy
@@ -60,7 +60,7 @@ jobs:
         make conda
 
     - name: make lint
-      run: make lint
+      run: make lint_flake8
 
     - name: make mypy
       run: make mypy
