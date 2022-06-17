@@ -39,8 +39,8 @@ def request_to_curl(req: requests.PreparedRequest) -> str:
 class HttpClient:
     """Python interface, wrapping the Rest API."""
 
-    def __init__(self, host: str, api_version: str = DEFAULT_API_VERSION, verbose: int = 0) -> None:
-        self.host        = host
+    def __init__(self, hosts: list[str], api_version: str = DEFAULT_API_VERSION, verbose: int = 0) -> None:
+        self.hosts       = hosts
         self.api_version = api_version
         self.verbose     = verbose
 
@@ -59,7 +59,8 @@ class HttpClient:
         if payload and 'Content-Type' not in _headers:
             _headers['Content-Type'] = "application/json"
 
-        url = f"{self.host}/{self.api_version}/" + "/".join(path_parts)
+        host = self.hosts[0]
+        url  = f"{host}/{self.api_version}/" + "/".join(path_parts)
         print(f"{method} {url}", path_parts)
 
         response = requests.request(

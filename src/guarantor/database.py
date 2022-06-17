@@ -12,15 +12,17 @@ from sqlalchemy.ext.declarative import declarative_base
 
 # import fastapi_sqlalchemy
 
-SQLALCHEMY_DB_URL = os.getenv('GUARANTOR_SQLALCHEMY_DB_URL', "sqlite:///./guarantor.db")
+DB_URL = os.getenv('GUARANTOR_DB_URL', "sqlite:///./guarantor.sqlite3")
 
 connect_args = {}
 
-if SQLALCHEMY_DB_URL.startswith("sqlite://"):
+if DB_URL.startswith("sqlite://"):
     connect_args['check_same_thread'] = False
+else:
+    raise NotImplementedError(f"No db implementation for {DB_URL}")
 
 
-engine       = create_engine(SQLALCHEMY_DB_URL, connect_args=connect_args)
+engine       = create_engine(DB_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
