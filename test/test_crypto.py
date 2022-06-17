@@ -108,7 +108,14 @@ def test_verify():
     assert message   == "This is an example of a signed message."
     assert address   == '1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN'
     assert signature == (
+<<<<<<< HEAD
         "HCT1esk/TWlF/o9UNzLDANqsPXntkMErf7erIrjH5IBOZ" "P98cNcmWmnW0GpSAi3wbr6CwpUAN4ctNn1T71UBwSc="
+||||||| constructed merge base
+        "HCT1esk/TWlF/o9UNzLDANqsPXntkMErf7erIrjH5IBOZ"
+        "P98cNcmWmnW0GpSAi3wbr6CwpUAN4ctNn1T71UBwSc="
+=======
+        "HCT1esk/TWlF/o9UNzLDANqsPXntkMErf7erIrjH5IBOZP98cNcmWmnW0GpSAi3wbr6CwpUAN4ctNn1T71UBwSc="
+>>>>>>> integration test harness working
     )
     assert crypto.verify(address, signature, message)
 

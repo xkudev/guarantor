@@ -61,7 +61,7 @@ class HttpClient:
 
         host = self.hosts[0]
         url  = f"{host}/{self.api_version}/" + "/".join(path_parts)
-        print(f"{method} {url}", path_parts)
+        logger.info(f"{method} {url}")
 
         response = requests.request(
             method,

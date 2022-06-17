@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import time
 import shutil
 import typing as typ
@@ -11,30 +12,55 @@ import click.testing
 
 import guarantor.cli
 
-CLI_ENV = {
-    'GUARANTOR_CONNECT_URLS': "http://127.0.0.1:8000",
-    'GUARANTOR_DB_URL'      : "sqlite:///./guarantor.sqlite3",
+TEST_ENV_DEFAULTS = {
+    'GUARANTOR_URLS'  : "http://localhost:8021",
+    'GUARANTOR_HOST'  : "0.0.0.0",
+    'GUARANTOR_PORT'  : "8021",
+    'GUARANTOR_DB_URL': "sqlite:///./guarantor.sqlite3",
 }
 
 
 def text_env_defaults():
-    assert CLI_ENV.keys() == guarantor.cli.cli.ENV_DEFAULTS_OPTIONS.keys()
-    for key in CLI_ENV.keys():
-        assert type(CLI_ENV[key]) == guarantor.cli.cli.ENV_DEFAULTS_OPTIONS[key]
+    assert TEST_ENV_DEFAULTS.keys() == guarantor.cli.cli.ENV_DEFAULTS_OPTIONS.keys()
+    for key, val in TEST_ENV_DEFAULTS.items():
+        assert type(val) == guarantor.cli.cli.ENV_DEFAULTS_OPTIONS[key]
 
 
 def shell(*cmd):
-    return sp.check_output(cmd, env=CLI_ENV)
+    return sp.check_output(cmd, env=TEST_ENV_DEFAULTS)
+
+
+def new_env(**overrides) -> dict[str, str]:
+    env = TEST_ENV_DEFAULTS.copy()
+    env['PATH'      ] = os.environ['PATH']
+    env['PYTHONPATH'] = os.environ['PYTHONPATH']
+    for key, val in overrides:
+        env[key.upper()] = val
+    return env
 
 
 class Context:
     def __init__(self, tmpdir: pl.Path) -> None:
-        env = CLI_ENV.copy()
-        env['PATH'] = os.environ['PATH']
-        self.runner = click.testing.CliRunner(env=CLI_ENV)
+        self.cli_env = new_env()
 
     def cli(self, *argv):
-        return self.runner.invoke(guarantor.cli.cli, argv)
+        assert self.cli_env['GUARANTOR_URLS'] == "http://localhost:8021"
+        runner = click.testing.CliRunner(env=self.cli_env)
+        return runner.invoke(guarantor.cli.cli, list(argv))
+
+
+@pytest.fixture(scope="module")
+def server():
+    serve_env = new_env()
+
+    serve_cmd = ["python", "-m", "guarantor", "serve", "--no-reload"]
+    with sp.Popen(serve_cmd, env=serve_env, stdout=sp.PIPE, stderr=sp.PIPE) as proc:
+        time.sleep(3.0)
+        try:
+            yield proc
+        finally:
+            proc.kill()
+            time.sleep(1.0)
 
 
 @pytest.fixture
@@ -57,9 +83,6 @@ def ctx(tmpdir: pl.Path) -> typ.Iterator[Context]:
     os.chdir(str(tmpdir))
 
     ctx = Context(tmpdir)
-    ctx.cli("serve", "--port=5151")
-    print("???")
-
     yield ctx
 
     os.chdir(orig_cwd)
@@ -71,11 +94,11 @@ def ctx(tmpdir: pl.Path) -> typ.Iterator[Context]:
 def test_help(ctx: Context):
     res = ctx.cli('--help')
     assert res.exit_code == 0
-    assert "--version" in result.output
+    assert "--version" in res.output
 
 
-def test_info(ctx: Context):
-    result = ctx.cli.info()
+def test_info(ctx: Context, server: sp.Popen):
+    res = ctx.cli("info")
     assert res.exit_code == 0
-    print(res.output)
-    assert False
+    server_info = json.loads(res.output)
+    assert set(server_info.keys()) >= {'name', 'version', 'time', 'iso8601'}
