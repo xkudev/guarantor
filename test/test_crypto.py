@@ -1,5 +1,6 @@
 import binascii
 
+import pytest
 from pycoin.symbols.btc import network as BTC
 
 from guarantor import crypto
@@ -137,3 +138,17 @@ def __test_fixtures():
     message   = FIXTURE['positive']['message']
     signature = FIXTURE['positive']['signature']
     assert crypto.verify(address, signature, message)
+
+
+def test_validate_address():
+    crypto.validate_address("1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv")
+
+    with pytest.raises(ValueError, match=r"Invalid BTC address: foo"):
+        crypto.validate_address("foo")
+
+
+def test_validate_wif():
+    crypto.validate_wif("5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss")
+
+    with pytest.raises(ValueError, match=r"Invalid WIF: foo"):
+        crypto.validate_wif("foo")
