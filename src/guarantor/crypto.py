@@ -36,7 +36,7 @@ def verify(address: str, signature: str, message: str) -> str:
     return str(BTC.msg.verify(address, signature, message))
 
 
-def deterministic_hash(obj: typ.Any) -> str:
+def deterministic_json_hash(obj: typ.Any) -> str:
     """Returns sha256 hex digest of object serialized according to RFC 8785"""
     sha256 = hashlib.sha256()
     sha256.update(jcs.canonicalize(obj))
