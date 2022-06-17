@@ -1,23 +1,51 @@
+import binascii
+
+import pytest
 from pycoin.symbols.btc import network as BTC
 
-ADDRESS     = "bc1qt3y9cxcw93w9h4u0n9sm30p6n4sn4t88hx2rxu"
-PUBLIC_KEYS = "03eaa795767400e53e8b63685b41dd512eb7de7fd5d7a51f5657003685a43bd92d"
-PRIVATE_KEY = "p2wpkh:L23nLNHmLoCkK1biBmY7z3tdY8qXJAkcerNP3SoxoTVHDgC5FzDr"
-MESSAGE     = "TEST_MESSAGE"
-SIGNATURE   = (
-    "HxVrktEEv/3tLOUJ19HijkkAFvlzUV6rh5HFKfyyiPnPVcoBCrqivZBOGNffIoeds5nWBCQOXMY6C03qXQiYJZI="
-)
-ENCRYPTED = (
-    "QklFMQJvsEjHP/ZXsK1yeZt2pMl3JV0Kmo/oZpHbD/68eMF5jHjUz7Twgq"
-    "Ps0O3GyolvhZPAGfTK39N0Xi0eP4C4XFWOpUFUCduhc63p36g4sXbHDw=="
-)
+from guarantor import crypto
+
+MULTIBIT = '''
+-----BEGIN BITCOIN SIGNED MESSAGE-----
+This is an example of a signed message.
+-----BEGIN BITCOIN SIGNATURE-----
+Version: Bitcoin-qt (1.0)
+Address: 1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN
+HCT1esk/TWlF/o9UNzLDANqsPXntkMErf7erIrjH5IBOZP98cNcmWmnW0GpSAi3wbr6CwpUAN4ctNn1T71UBwSc=
+-----END BITCOIN SIGNATURE-----
+'''
 
 
-def test_against_myself():
-    """
-    Test code that verifies against ourselves only. Useful but not so great.
-    """
+FIXTURE = {
+    'positive': {
+        'address': "mkRqiCnLFFsEH6ezsE1RiMxEjLRXZzWjwe",
+        # "message": binascii.hexlify(b"testmessagee"),
+        'message'  : "testmessagee",
+        'signature': "H8wq7z8or7jGGT06ZJ0dC1+wnmRLY/fWnW2SRSRPtypaBAFJAtYhcOl+0jyjujEio91/7eFEW9tuM/WZOusSEGc=",
+        'valid'    : True,
+    },
+    'incorrect_address': {
+        'address'  : "mkRqiCnLFFsEH6ezsE2RiMxEjLRXZzWjwe",
+        'message'  : binascii.hexlify(b"testmessagee"),
+        'signature': "H8wq7z8or7jGGT06ZJ0dC1+wnmRLY/fWnW2SRSRPtypaBAFJAtYhcOl+0jyjujEio91/7eFEW9tuM/WZOusSEGc=",
+        'valid'    : False,
+    },
+    'incorrect_signature': {
+        'address'  : "mkRqiCnLFFsEH6ezsE1RiMxEjLRXZzWjwe",
+        'message'  : binascii.hexlify(b"testmessagee"),
+        'signature': "H8wq7z8or7jGGT06ZJ1dC1+wnmRLY/fWnW2SRSRPtypaBAFJAtYhcOl+0jyjujEio91/7eFEW9tuM/WZOusSEGc=",
+        'valid'    : False,
+    },
+    'incorrect_data': {
+        'address'  : "mkRqiCnLFFsEH6ezsE1RiMxEjLRXZzWjwe",
+        'message'  : binascii.hexlify(b"testmessagee"),
+        'signature': "H8wq7z8or7jGGT06ZJ0dC1+wnmRLY/fWnW2SRSRPtypaBAFJAtYhcOl+0jyjujEio91/7eFEW9tuM/WZOusSEGc=",
+        'valid'    : False,
+    },
+}
 
+
+def test_pycoin():
     for wif, right_addr in [
         (
             'L4gXBvYrXHo59HLeyem94D9yLpRkURCHmCwQtPuWW9m6o1X8p8sp',
@@ -52,3 +80,75 @@ def test_against_myself():
             assert BTC.msg.verify(key, sig2, msg)
 
             assert BTC.msg.verify(key, sig2.encode('ascii'), msg)
+
+
+def test_sign():
+    for wif, right_addr in [
+        (
+            'L4gXBvYrXHo59HLeyem94D9yLpRkURCHmCwQtPuWW9m6o1X8p8sp',
+            '1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv',
+        ),
+        (
+            '5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss',
+            '1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN',
+        ),
+    ]:
+        key  = BTC.parse.wif(wif)
+        addr = crypto.get_address(wif)
+        assert addr == right_addr
+        for i in range(1, 30, 10):
+            msg = f"test message {'A' * i}"
+            sig = crypto.sign(msg, wif)
+            assert BTC.msg.verify(key, sig, msg)
+
+
+def test_verify():
+    message, address, signature = BTC.msg.parse_signed(MULTIBIT)
+    assert message   == "This is an example of a signed message."
+    assert address   == '1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN'
+    assert signature == (
+        "HCT1esk/TWlF/o9UNzLDANqsPXntkMErf7erIrjH5IBOZ"
+        "P98cNcmWmnW0GpSAi3wbr6CwpUAN4ctNn1T71UBwSc="
+    )
+    assert crypto.verify(address, signature, message)
+
+
+def test_compatibility():
+    for wif, right_addr in [
+        (
+            'L4gXBvYrXHo59HLeyem94D9yLpRkURCHmCwQtPuWW9m6o1X8p8sp',
+            '1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv',
+        ),
+        (
+            '5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss',
+            '1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN',
+        ),
+    ]:
+        for i in range(1, 30, 10):
+            msg  = f"test message {'A' * i}"
+            sig  = crypto.sign(msg, wif)
+            addr = crypto.get_address(wif)
+            assert addr == right_addr
+            assert crypto.verify(right_addr, sig, msg)
+
+
+def __test_fixtures():
+    # cleanup tests and ensure compatibility with bitcoind, etc
+    address   = FIXTURE['positive']['address']
+    message   = FIXTURE['positive']['message']
+    signature = FIXTURE['positive']['signature']
+    assert crypto.verify(address, signature, message)
+
+
+def test_validate_address():
+    crypto.validate_address("1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv")
+
+    with pytest.raises(ValueError, match=r"Invalid BTC address: foo"):
+        crypto.validate_address("foo")
+
+
+def test_validate_wif():
+    crypto.validate_wif("5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss")
+
+    with pytest.raises(ValueError, match=r"Invalid WIF: foo"):
+        crypto.validate_wif("foo")
