@@ -1,3 +1,7 @@
+import typing as typ
+import hashlib
+
+import jcs
 from pycoin.symbols.btc import network as BTC
 
 
@@ -30,3 +34,10 @@ def verify(address: str, signature: str, message: str) -> str:
     """Verify signature if for given input message and address."""
     validate_address(address)
     return str(BTC.msg.verify(address, signature, message))
+
+
+def deterministic_hash(obj: typ.Any) -> str:
+    """Returns sha256 hex digest of object serialized according to RFC 8785"""
+    sha256 = hashlib.sha256()
+    sha256.update(jcs.canonicalize(obj))
+    return sha256.hexdigest()

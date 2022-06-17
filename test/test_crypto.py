@@ -152,3 +152,22 @@ def test_validate_wif():
 
     with pytest.raises(ValueError, match=r"Invalid WIF: foo"):
         crypto.validate_wif("foo")
+
+
+def test_deterministic_hash():
+    assert (
+        crypto.deterministic_hash("foo")
+        == "b2213295d564916f89a6a42455567c87c3f480fcd7a1c15e220f17d7169a790b"
+    )
+    assert (
+        crypto.deterministic_hash(None)
+        == "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+    )
+    assert (
+        crypto.deterministic_hash({'a': 'foo', 'b': 'bar'})
+        == "d695d9c070d88814ac7364ba48d2aa387abe1238c760c06e8cd359758cc0d16a"
+    )
+    assert (
+        crypto.deterministic_hash({'b': 'bar', 'a': 'foo'})
+        == "d695d9c070d88814ac7364ba48d2aa387abe1238c760c06e8cd359758cc0d16a"
+    )
