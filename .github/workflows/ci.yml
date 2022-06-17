@@ -2,10 +2,10 @@ name: CI
 
 on: [push, pull_request]
 
-jobs:
+env:
+  IS_IN_CI_CONTEXT: 1
 
-  env:
-    IS_IN_CI_CONTEXT: 1
+jobs:
 
   build-ubuntu:
 
