@@ -5,7 +5,6 @@
 # Copyright (c) 2022 xkudev (xkudev@pm.me) - MIT License
 # SPDX-License-Identifier: MIT
 import os
-import time
 
 import click
 
@@ -63,10 +62,10 @@ def info(host: str) -> None:
 def post_identity(host: str) -> None:
     http_client = HttpClient(host)
     identity    = schemas.Identity(
-        pubkey=str(int(time.time() * 1000)),
+        address="1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv",
         info={'name': "jdoe", 'birthday': '2000-01-01', 'sex': "yes"},
     )
     print(">>>", identity)
     identity_resp = http_client.post_identity(identity)
     print("<<<", identity_resp)
-    print("???", http_client.get_identity(identity.pubkey))
+    print("???", http_client.get_identity(identity.address))

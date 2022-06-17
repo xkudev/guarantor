@@ -43,9 +43,9 @@ async def info():
 
 
 def _identity_response(db_identity: models.Identity) -> schemas.IdentityResponse:
-    identity = schemas.Identity(pubkey=db_identity.pubkey, info=json.loads(db_identity.info))
+    identity = schemas.Identity(address=db_identity.address, info=json.loads(db_identity.info))
     return schemas.IdentityResponse(
-        path=f"/v1/identity/{db_identity.pubkey}",
+        path=f"/v1/identity/{db_identity.address}",
         identity=identity,
     )
 
@@ -53,7 +53,7 @@ def _identity_response(db_identity: models.Identity) -> schemas.IdentityResponse
 @app.post("/v1/identity", response_model=schemas.IdentityResponse)
 async def post_identity(identity: schemas.Identity, db: Session = database.session):
     db_identity = models.Identity(
-        pubkey=identity.pubkey,
+        address=identity.address,
         info=json.dumps(identity.info),
     )
     db.add(db_identity)
@@ -63,9 +63,9 @@ async def post_identity(identity: schemas.Identity, db: Session = database.sessi
     return _identity_response(db_identity)
 
 
-@app.get("/v1/identity/{pubkey}", response_model=schemas.IdentityResponse)
-async def get_identity(pubkey: str, db: Session = database.session):
-    db_identity = db.query(models.Identity).filter(models.Identity.pubkey == pubkey).first()
+@app.get("/v1/identity/{address}", response_model=schemas.IdentityResponse)
+async def get_identity(address: str, db: Session = database.session):
+    db_identity = db.query(models.Identity).filter(models.Identity.address == address).first()
     return _identity_response(db_identity)
 
 
