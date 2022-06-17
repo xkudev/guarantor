@@ -58,6 +58,7 @@ class Context:
 def server():
     serve_env = new_env()
 
+    sp.run(["python", "-m", "alembic", "upgrade", "head"])
     serve_cmd = ["python", "-m", "guarantor", "serve", "--no-reload"]
     # with sp.Popen(serve_cmd, env=serve_env, stdout=sp.PIPE, stderr=sp.PIPE) as proc:
     with sp.Popen(serve_cmd, env=serve_env) as proc:
