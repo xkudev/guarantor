@@ -92,7 +92,9 @@ def test_sign():
             '1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN',
         ),
     ]:
-        key = BTC.parse.wif(wif)
+        key  = BTC.parse.wif(wif)
+        addr = crypto.get_address(wif)
+        assert addr == right_addr
         for i in range(1, 30, 10):
             msg = f"test message {'A' * i}"
             sig = crypto.sign(msg, wif)
@@ -130,6 +132,7 @@ def test_compatibility():
 
 
 def __test_fixtures():
+    # cleanup tests and ensure compatibility with bitcoind, etc
     address   = FIXTURE['positive']['address']
     message   = FIXTURE['positive']['message']
     signature = FIXTURE['positive']['signature']
