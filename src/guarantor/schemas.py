@@ -4,14 +4,33 @@
 # Copyright (c) 2022 xkudev (xkudev@pm.me) - MIT License
 # SPDX-License-Identifier: MIT
 # import enum
+from guarantor import crypto
 import typing as typ
 
 import pydantic
 
 
+class Signed(pydantic.BaseModel):
+    address: str
+    data  : pydantic.BaseModel
+    signature: str | None
+
+    def verify(self) -> bool:
+        hexdigest = crypto.deterministic_json_hash(self.data)
+        crypto.verify(self.address, self.signature, hexdigest)
+
+    def sign(self, wif: str):
+        hexdigest = crypto.deterministic_json_hash(self.data)
+        self.signature = crypto.sign(hexdigest, wif)
+
+
 class Identity(pydantic.BaseModel):
-    pubkey: str
+    address: str
     info  : dict[str, typ.Any]
+
+
+class SignedIdentity(Signed):
+    data = Identity
 
 
 class IdentityResponse(pydantic.BaseModel):
