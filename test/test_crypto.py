@@ -123,6 +123,8 @@ def test_compatibility():
         for i in range(1, 30, 10):
             msg = f"test message {'A' * i}"
             sig = crypto.sign(msg, wif)
+            addr = crypto.wif_address(wif)
+            assert addr == right_addr
             assert crypto.verify(right_addr, sig, msg)
 
 
