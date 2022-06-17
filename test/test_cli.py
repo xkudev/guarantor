@@ -56,8 +56,9 @@ def server():
     serve_env = new_env()
 
     serve_cmd = ["python", "-m", "guarantor", "serve", "--no-reload"]
-    with sp.Popen(serve_cmd, env=serve_env, stdout=sp.PIPE, stderr=sp.PIPE) as proc:
-        time.sleep(9.0)
+    # with sp.Popen(serve_cmd, env=serve_env, stdout=sp.PIPE, stderr=sp.PIPE) as proc:
+    with sp.Popen(serve_cmd, env=serve_env) as proc:
+        time.sleep(90.0)
         try:
             yield proc
         finally:
