@@ -4,6 +4,9 @@ on: [push, pull_request]
 
 jobs:
 
+  env:
+    IS_IN_CI_CONTEXT: 1
+
   build-ubuntu:
 
     runs-on: ubuntu-latest
