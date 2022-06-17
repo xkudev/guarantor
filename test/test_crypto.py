@@ -1,7 +1,8 @@
 import binascii
-from guarantor import crypto
+
 from pycoin.symbols.btc import network as BTC
 
+from guarantor import crypto
 
 MULTIBIT = '''
 -----BEGIN BITCOIN SIGNED MESSAGE-----
@@ -15,31 +16,31 @@ HCT1esk/TWlF/o9UNzLDANqsPXntkMErf7erIrjH5IBOZP98cNcmWmnW0GpSAi3wbr6CwpUAN4ctNn1T
 
 
 FIXTURE = {
-    "positive": {
-        "address": "mkRqiCnLFFsEH6ezsE1RiMxEjLRXZzWjwe",
+    'positive': {
+        'address': "mkRqiCnLFFsEH6ezsE1RiMxEjLRXZzWjwe",
         # "message": binascii.hexlify(b"testmessagee"),
-        "message": "testmessagee",
-        "signature": "H8wq7z8or7jGGT06ZJ0dC1+wnmRLY/fWnW2SRSRPtypaBAFJAtYhcOl+0jyjujEio91/7eFEW9tuM/WZOusSEGc=",
-        "valid": True,
+        'message'  : "testmessagee",
+        'signature': "H8wq7z8or7jGGT06ZJ0dC1+wnmRLY/fWnW2SRSRPtypaBAFJAtYhcOl+0jyjujEio91/7eFEW9tuM/WZOusSEGc=",
+        'valid'    : True,
     },
-    "incorrect_address": {
-        "address": "mkRqiCnLFFsEH6ezsE2RiMxEjLRXZzWjwe",
-        "message": binascii.hexlify(b"testmessagee"),
-        "signature": "H8wq7z8or7jGGT06ZJ0dC1+wnmRLY/fWnW2SRSRPtypaBAFJAtYhcOl+0jyjujEio91/7eFEW9tuM/WZOusSEGc=",
-        "valid": False,
+    'incorrect_address': {
+        'address'  : "mkRqiCnLFFsEH6ezsE2RiMxEjLRXZzWjwe",
+        'message'  : binascii.hexlify(b"testmessagee"),
+        'signature': "H8wq7z8or7jGGT06ZJ0dC1+wnmRLY/fWnW2SRSRPtypaBAFJAtYhcOl+0jyjujEio91/7eFEW9tuM/WZOusSEGc=",
+        'valid'    : False,
     },
-    "incorrect_signature": {
-        "address": "mkRqiCnLFFsEH6ezsE1RiMxEjLRXZzWjwe",
-        "message": binascii.hexlify(b"testmessagee"),
-        "signature": "H8wq7z8or7jGGT06ZJ1dC1+wnmRLY/fWnW2SRSRPtypaBAFJAtYhcOl+0jyjujEio91/7eFEW9tuM/WZOusSEGc=",
-        "valid": False,
+    'incorrect_signature': {
+        'address'  : "mkRqiCnLFFsEH6ezsE1RiMxEjLRXZzWjwe",
+        'message'  : binascii.hexlify(b"testmessagee"),
+        'signature': "H8wq7z8or7jGGT06ZJ1dC1+wnmRLY/fWnW2SRSRPtypaBAFJAtYhcOl+0jyjujEio91/7eFEW9tuM/WZOusSEGc=",
+        'valid'    : False,
     },
-    "incorrect_data": {
-        "address": "mkRqiCnLFFsEH6ezsE1RiMxEjLRXZzWjwe",
-        "message": binascii.hexlify(b"testmessagee"),
-        "signature": "H8wq7z8or7jGGT06ZJ0dC1+wnmRLY/fWnW2SRSRPtypaBAFJAtYhcOl+0jyjujEio91/7eFEW9tuM/WZOusSEGc=",
-        "valid": False,
-    }
+    'incorrect_data': {
+        'address'  : "mkRqiCnLFFsEH6ezsE1RiMxEjLRXZzWjwe",
+        'message'  : binascii.hexlify(b"testmessagee"),
+        'signature': "H8wq7z8or7jGGT06ZJ0dC1+wnmRLY/fWnW2SRSRPtypaBAFJAtYhcOl+0jyjujEio91/7eFEW9tuM/WZOusSEGc=",
+        'valid'    : False,
+    },
 }
 
 
@@ -67,7 +68,7 @@ def test_pycoin():
 
             # check parsing works
             parsed_msg, parsed_addr, parsed_sig = BTC.msg.parse_signed(sig)
-            assert parsed_msg == msg, parsed_msg
+            assert parsed_msg  == msg       , parsed_msg
             assert parsed_addr == right_addr, parsed_addr
 
             sig2 = BTC.msg.sign(key, msg, verbose=0)
@@ -100,11 +101,11 @@ def test_sign():
 
 def test_verify():
     message, address, signature = BTC.msg.parse_signed(MULTIBIT)
-    assert message == 'This is an example of a signed message.'
-    assert address == '1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN'
+    assert message   == "This is an example of a signed message."
+    assert address   == '1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN'
     assert signature == (
-        'HCT1esk/TWlF/o9UNzLDANqsPXntkMErf7erIrjH5IBOZ'
-        'P98cNcmWmnW0GpSAi3wbr6CwpUAN4ctNn1T71UBwSc='
+        "HCT1esk/TWlF/o9UNzLDANqsPXntkMErf7erIrjH5IBOZ"
+        "P98cNcmWmnW0GpSAi3wbr6CwpUAN4ctNn1T71UBwSc="
     )
     assert crypto.verify(address, signature, message)
 
@@ -121,15 +122,15 @@ def test_compatibility():
         ),
     ]:
         for i in range(1, 30, 10):
-            msg = f"test message {'A' * i}"
-            sig = crypto.sign(msg, wif)
-            addr = crypto.wif_address(wif)
+            msg  = f"test message {'A' * i}"
+            sig  = crypto.sign(msg, wif)
+            addr = crypto.get_address(wif)
             assert addr == right_addr
             assert crypto.verify(right_addr, sig, msg)
 
 
 def __test_fixtures():
-    address = FIXTURE["positive"]["address"]
-    message = FIXTURE["positive"]["message"]
-    signature = FIXTURE["positive"]["signature"]
+    address   = FIXTURE['positive']['address']
+    message   = FIXTURE['positive']['message']
+    signature = FIXTURE['positive']['signature']
     assert crypto.verify(address, signature, message)

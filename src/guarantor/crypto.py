@@ -7,7 +7,7 @@ def sign(message, wif):
     return sig.encode('ascii')
 
 
-def wif_address(wif):
+def get_address(wif):
     return BTC.parse.wif(wif).address()
 
 
