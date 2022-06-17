@@ -4,32 +4,42 @@
 # Copyright (c) 2022 xkudev (xkudev@pm.me) - MIT License
 # SPDX-License-Identifier: MIT
 import os
+import typing as typ
 
 import fastapi
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
 
 # import fastapi_sqlalchemy
 
+Base = declarative_base()
+
 DB_URL = os.getenv('GUARANTOR_DB_URL', "sqlite:///./guarantor.sqlite3")
 
-connect_args = {}
 
-if DB_URL.startswith("sqlite://"):
-    connect_args['check_same_thread'] = False
-else:
-    raise NotImplementedError(f"No db implementation for {DB_URL}")
+DB_SESSION_CLASSES: dict[str, typ.Callable[[], sa.orm.Session]] = {}
 
 
-engine       = create_engine(DB_URL, connect_args=connect_args)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+def _init_session_local(db_url: str) -> sa.orm.Session:
+    if db_url in DB_SESSION_CLASSES:
+        session_local_class = DB_SESSION_CLASSES[db_url]
+    else:
+        connect_args = {}
 
-Base = declarative_base()
+        if db_url.startswith("sqlite://"):
+            connect_args['check_same_thread'] = False
+        else:
+            raise NotImplementedError(f"No db implementation for {db_url}")
+
+        engine              = sa.create_engine(db_url, connect_args=connect_args)
+        session_local_class = sa.orm.sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        DB_SESSION_CLASSES[db_url] = session_local_class
+
+    return session_local_class()
 
 
 def get_db():
-    db = SessionLocal()
+    db = _init_session_local(DB_URL)
     try:
         yield db
     finally:

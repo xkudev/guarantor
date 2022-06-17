@@ -1,5 +1,7 @@
+# pylint: disable=redefined-outer-name
+# pylint: disable=unused-argument
+
 import os
-import sys
 import json
 import time
 import shutil
@@ -20,10 +22,10 @@ TEST_ENV_DEFAULTS = {
 }
 
 
-def text_env_defaults():
-    assert TEST_ENV_DEFAULTS.keys() == guarantor.cli.cli.ENV_DEFAULTS_OPTIONS.keys()
+def test_env_defaults():
+    assert set(TEST_ENV_DEFAULTS) <= set(guarantor.cli.ENV_DEFAULTS_OPTIONS)
     for key, val in TEST_ENV_DEFAULTS.items():
-        assert type(val) == guarantor.cli.cli.ENV_DEFAULTS_OPTIONS[key]
+        assert type(val) == type(guarantor.cli.ENV_DEFAULTS_OPTIONS[key])
 
 
 def shell(*cmd):

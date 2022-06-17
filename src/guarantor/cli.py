@@ -11,6 +11,7 @@ import typing as typ
 import click
 
 from guarantor import schemas
+from guarantor import database
 from guarantor.client import HttpClient
 from guarantor.cli_util import init_option
 
@@ -22,10 +23,10 @@ except ImportError:
     pass  # no need to fail because of missing dev dependency
 
 
-ENV_DEFAULTS_OPTIONS = {}
+ENV_DEFAULTS_OPTIONS: dict[str, typ.Any] = {}
 
 
-def opt(name: str, helptxt: str, default: typ.Any, **kwargs) -> click.Option:
+def opt(name: str, helptxt: str, default: typ.Any, **kwargs) -> typ.Any:
     option, env_name, _default = init_option(name, helptxt, default)
     if env_name in ENV_DEFAULTS_OPTIONS:
         assert ENV_DEFAULTS_OPTIONS[env_name] == _default
@@ -50,6 +51,7 @@ def serve(host: str, port: int, db_url: str, no_reload: bool) -> None:
     # pylint: disable=import-outside-toplevel
     import uvicorn
 
+    database.DB_URL = db_url
     uvicorn.run("guarantor.app:app", host=host, port=port, reload=not no_reload)
 
 
@@ -62,7 +64,7 @@ def info(urls: list[str]) -> None:
 
 @cli.command()
 @opt("urls", "Connection Urls (comma separated)", default=["http://127.0.0.1:21021"])
-def post_identity(urls: str) -> None:
+def post_identity(urls: list[str]) -> None:
     http_client = HttpClient(urls)
     identity    = schemas.Identity(
         pubkey=str(int(time.time() * 1000)),
