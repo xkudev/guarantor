@@ -55,28 +55,6 @@ environment. Hopefully this will reduce discrepancies between
 development and production systems.
 
 
-### Setup SSH keys
-
-Projects which depend on private repositories require ssh to
-connect to remote servers. If this is the case, you should make
-sure that your ssh keys are available in `${HOME}/.ssh`, or you
-will have to do `ssh-keygen` and install the generated public
-key to host system. If this is not done, `pip install` will fail
-to install these dependencies from your private repositories with
-an error like this
-
-```shell
-Downloading/unpacking git+git://...git
-Cloning Git repository git://
-
-Permission denied (publickey).
-
-fatal: The remote end hung up unexpectedly
-----------------------------------------
-Command /usr/local/bin/git clone ... failed with error code 128
-```
-
-
 ### Setup Virtual Environments
 
 The first setup can take a while, since it will install miniconda and
@@ -132,21 +110,21 @@ You can also activate the default virtual environment as follows.
 
 
 ```shell
-(myproject_py36) dev@host:~/myproject
+(myproject_py310) dev@host:~/myproject
 $ source ./activate
 $ which python
-/home/dev/miniconda3/envs/myproject_py36/bin/python
+/home/dev/miniconda3/envs/myproject_py310/bin/python
 
 $ ipython
-Python 3.6.6 |Anaconda, Inc.| (default, Jun 28 2018, 17:14:51)
-t Type 'copyright', 'credits' or 'license' for more information
-IPython 6.5.0 -- An enhanced Interactive Python. Type '?' for help.
+Python 3.10.4 | packaged by conda-forge | (main, Mar 24 2022, 17:39:04) [GCC 10.3.0]
+Type 'copyright', 'credits' or 'license' for more information
+IPython 8.4.0 -- An enhanced Interactive Python. Type '?' for help.
 
 In [1]: import sys
 
 In [2]: sys.path
 Out[2]:
-['/home/dev/miniconda3/envs/pycalver_py36/bin',
+['/home/dev/miniconda3/envs/pycalver_py310/bin',
  '/home/dev/myproject/src',
  '/home/dev/myproject/vendor',
  ...
@@ -164,11 +142,11 @@ to see how to set up `PYTHONPATH` correctly.
 ```shell
 $ make ipy --dry-run
 ENV=${ENV-dev} PYTHONPATH=src/:vendor/:$PYTHONPATH \
-    /home/dev/miniconda3/envs/myproject_py36/bin/ipython
+    /home/dev/miniconda3/envs/myproject_py310/bin/ipython
 $ make ipy
-Python 3.6.6 |Anaconda, Inc.| (default, Jun 28 2018, 17:14:51)
+Python 3.10.4 | packaged by conda-forge | (main, Mar 24 2022, 17:39:04) [GCC 10.3.0]
 Type 'copyright', 'credits' or 'license' for more information
-IPython 6.5.0 -- An enhanced Interactive Python. Type '?' for help.
+IPython 8.4.0 -- An enhanced Interactive Python. Type '?' for help.
 
 In [1]: import myproject
 
@@ -310,7 +288,7 @@ After adding a new dependency, you can run `make conda`
 
 
 ```shell
-(myproject_py36) dev@host:~/myproject
+(myproject_py310) dev@host:~/myproject
 $ make conda
 Solving environment: done
 

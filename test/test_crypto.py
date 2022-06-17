@@ -108,8 +108,7 @@ def test_verify():
     assert message   == "This is an example of a signed message."
     assert address   == '1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN'
     assert signature == (
-        "HCT1esk/TWlF/o9UNzLDANqsPXntkMErf7erIrjH5IBOZ"
-        "P98cNcmWmnW0GpSAi3wbr6CwpUAN4ctNn1T71UBwSc="
+        "HCT1esk/TWlF/o9UNzLDANqsPXntkMErf7erIrjH5IBOZP98cNcmWmnW0GpSAi3wbr6CwpUAN4ctNn1T71UBwSc="
     )
     assert crypto.verify(address, signature, message)
 
