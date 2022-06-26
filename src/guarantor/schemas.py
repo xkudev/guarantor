@@ -33,7 +33,7 @@ class Identity(pydantic.BaseModel):
 
 
 class SignedIdentity(SignedDocument):
-    document = Identity
+    document: Identity
 
 
 class IdentityResponse(pydantic.BaseModel):
