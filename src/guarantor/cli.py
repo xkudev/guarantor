@@ -4,13 +4,9 @@
 #
 # Copyright (c) 2022 xkudev (xkudev@pm.me) - MIT License
 # SPDX-License-Identifier: MIT
-<<<<<<< HEAD
-import os
-=======
+
 import json
-import time
 import typing as typ
->>>>>>> f9797ef1e1dc16c569e943a45b7be79eda208837
 
 import click
 
