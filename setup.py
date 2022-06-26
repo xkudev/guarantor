@@ -29,8 +29,6 @@ install_requires = [
 long_description = "\n\n".join((read("README.md"), read("CHANGELOG.md")))
 
 
-python_requires = ">=3.10"
-
 # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -52,9 +50,6 @@ classifiers = [
 ]
 
 
-package_dir = {"": "src"}
-
-
 setuptools.setup(
     name="guarantor",
     license="MIT",
@@ -66,16 +61,15 @@ setuptools.setup(
     description="The Guarantor Project.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    packages=setuptools.find_packages("src"),
-    package_dir=package_dir,
-    # include_package_data=True,
-    # package_data={"": ["*.txt"]},
+    packages=['guarantor', 'guarantor.static'],
+    package_dir={"": "src"},
+    include_package_data=True,
+    zip_safe=False,
     install_requires=install_requires,
     entry_points="""
         [console_scripts]
         guarantor=guarantor.cli:cli
     """,
-    python_requires=python_requires,
-    zip_safe=True,
+    python_requires=">=3.10",
     classifiers=classifiers,
 )

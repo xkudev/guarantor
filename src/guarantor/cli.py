@@ -4,13 +4,20 @@
 #
 # Copyright (c) 2022 xkudev (xkudev@pm.me) - MIT License
 # SPDX-License-Identifier: MIT
+<<<<<<< HEAD
 import os
+=======
+import json
+import time
+import typing as typ
+>>>>>>> f9797ef1e1dc16c569e943a45b7be79eda208837
 
 import click
 
-import guarantor
 from guarantor import schemas
+from guarantor import database
 from guarantor.client import HttpClient
+from guarantor.cli_util import init_option
 
 try:
     import pretty_traceback
@@ -20,47 +27,49 @@ except ImportError:
     pass  # no need to fail because of missing dev dependency
 
 
-def _env(name: str, default: str | None) -> (str | None):
-    full_name = f"GUARANTOR_{name}"
-    return os.getenv(full_name, default)
+ENV_DEFAULTS_OPTIONS: dict[str, typ.Any] = {}
 
 
-ENV_HOST = _env('HOST', default="http://127.0.0.1:8000")
-
-
-host_option = click.option(
-    "-h",
-    "--host",
-    type=str,
-    required=False,
-    default=(lambda: ENV_HOST),
-    help="Hostname       [env: GUARANTOR_HOST]",
-)
+def opt(name: str, helptxt: str, default: typ.Any, **kwargs) -> typ.Any:
+    option, env_name, _default = init_option(name, helptxt, default)
+    if env_name in ENV_DEFAULTS_OPTIONS:
+        assert ENV_DEFAULTS_OPTIONS[env_name] == _default
+    else:
+        ENV_DEFAULTS_OPTIONS[env_name] = _default
+    return option
 
 
 @click.group(context_settings={'help_option_names': ["-h", "--help"]})
+@click.version_option(version="2022.1001-alpha")
 def cli() -> None:
     """CLI for guarantor."""
 
 
 @cli.command()
-@click.version_option(version="2022.1001-alpha")
-def version() -> None:
-    """Show version number."""
-    print(f"guarantor version: {guarantor.__version__}")
+@opt("host"     , "IP to serve on"          , default="0.0.0.0")
+@opt("port"     , "Port to serve on"        , default=21021)
+@opt("db_url"   , "Database Url"            , default="sqlite:///./guarantor.sqlite3")
+@opt("no_reload", "Disable realod for serve", default=False)
+def serve(host: str, port: int, db_url: str, no_reload: bool) -> None:
+    """Serve API app with uvicorn"""
+    # pylint: disable=import-outside-toplevel
+    import uvicorn
+
+    database.DB_URL = db_url
+    uvicorn.run("guarantor.app:app", host=host, port=port, reload=not no_reload)
 
 
 @cli.command()
-@host_option
-def info(host: str) -> None:
-    http_client = HttpClient(host)
-    print(http_client.info())
+@opt("urls", "Connection Urls (comma separated)", default=["http://127.0.0.1:21021"])
+def info(urls: list[str]) -> None:
+    http_client = HttpClient(urls)
+    print(json.dumps(http_client.info()))
 
 
 @cli.command()
-@host_option
-def post_identity(host: str) -> None:
-    http_client = HttpClient(host)
+@opt("urls", "Connection Urls (comma separated)", default=["http://127.0.0.1:21021"])
+def post_identity(urls: list[str]) -> None:
+    http_client = HttpClient(urls)
     identity    = schemas.Identity(
         address="1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv",
         info={'name': "jdoe", 'birthday': '2000-01-01', 'sex': "yes"},

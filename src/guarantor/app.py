@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MIT
 import json
 import time
+import pathlib as pl
 import datetime as dt
 
 import fastapi
@@ -24,7 +25,9 @@ from guarantor import http_utils
 app = fastapi.FastAPI()
 
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+static_dir = pl.Path(__file__).parent / "static"
+
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
 @app.get("/", response_class=resp.RedirectResponse)
