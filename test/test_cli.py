@@ -59,9 +59,16 @@ def server():
     serve_env = new_env()
 
     sp.run(["python", "-m", "alembic", "upgrade", "head"])
-    serve_cmd = ["python", "-m", "guarantor", "serve", "--no-reload"]
-    # with sp.Popen(serve_cmd, env=serve_env, stdout=sp.PIPE, stderr=sp.PIPE) as proc:
-    with sp.Popen(serve_cmd, env=serve_env) as proc:
+
+    capture_serve_output = os.getenv("CAPTURE_SERVE_OUTPUT", "1") == "1"
+    serve_cmd            = ["python", "-m", "guarantor", "serve", "--no-reload"]
+
+    if capture_serve_output:
+        proc = sp.Popen(serve_cmd, env=serve_env, stdout=sp.PIPE, stderr=sp.PIPE)
+    else:
+        proc = sp.Popen(serve_cmd, env=serve_env)
+
+    with proc:
         time.sleep(3.0)
         try:
             yield proc

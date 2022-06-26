@@ -4,13 +4,33 @@
 # Copyright (c) 2022 xkudev (xkudev@pm.me) - MIT License
 # SPDX-License-Identifier: MIT
 import os
+import uuid
+import random
 import typing as typ
+import pathlib as pl
+import datetime as dt
 
 import click
+
+import guarantor.pretty_json as json
+from guarantor import wordlists
 
 OptionType = typ.Any
 
 Option = typ.Any
+
+
+ENV_HOME        = os.getenv("HOME")
+XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", os.path.join(ENV_HOME, ".config"))
+XDG_DATA_HOME   = os.getenv("XDG_DATA_HOME"  , os.path.join(ENV_HOME, ".local", "share"))
+
+DEFAULT_CONFIG_DIR = os.path.join(XDG_CONFIG_HOME, "guarantor")
+DEFAULT_DATA_DIR   = os.path.join(XDG_DATA_HOME  , "guarantor")
+
+
+class UserError(Exception):
+    def __init__(self, message: str, exit_code: int = 1) -> None:
+        super().__init__(message, exit_code)
 
 
 def init_option(name: str, helptxt: str, default: OptionType) -> tuple[Option, str, OptionType]:
@@ -61,3 +81,56 @@ def init_option(name: str, helptxt: str, default: OptionType) -> tuple[Option, s
         help=helptxt.ljust(20) + f"[evn:{env_name}]",
     )
     return (option, env_name, _default)
+
+
+def new_username() -> str:
+    nonce = "-".join(
+        [
+            str(random.randint(2, 9) * 10 + random.randint(1, 9)),
+            str(random.randint(2, 9) * 10 + random.randint(1, 9)),
+            str(random.randint(2, 9) * 10 + random.randint(1, 9)),
+        ]
+    )
+    return random.choice(wordlists.ADJECTIVES) + "-" + random.choice(wordlists.NAMES) + "-" + nonce
+
+
+Profile = typ.NewType('Profile', typ.Any)
+
+
+def update_profile(profile_obj: Profile) -> None:
+    profile_name     = profile_obj['name']
+    data_dir         = pl.Path(DEFAULT_DATA_DIR)
+    profile_path     = data_dir / (profile_name + ".json")
+    tmp_profile_path = data_dir / (profile_name + ".json.tmp")
+
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    profile_data = json.dumps(profile_obj)
+    with tmp_profile_path.open(mode="w", encoding="utf-8") as fobj:
+        fobj.write(profile_data)
+
+    tmp_profile_path.rename(profile_path)
+    return profile_obj
+
+
+def read_profile(profile_name: str) -> Profile:
+    profile_path = pl.Path(DEFAULT_DATA_DIR) / (profile_name + ".json")
+
+    if profile_path.exists():
+        with profile_path.open(mode="r", encoding="utf-8") as fobj:
+            profile_dict = json.load(fobj)
+        return Profile(profile_dict)
+    else:
+        anon_profile = Profile(
+            {
+                'name'    : profile_name,
+                'address' : str(uuid.uuid4()),
+                'username': new_username(),
+                'location': "cyberspace",
+                'creation': dt.datetime.utcnow().isoformat(),
+                'aliases' : {},
+                'contacts': {},
+            }
+        )
+        update_profile(anon_profile)
+        return anon_profile

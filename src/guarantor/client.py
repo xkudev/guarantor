@@ -97,3 +97,7 @@ class HttpClient:
     def get_identity(self, pubkey: str) -> ResponseData:
         response = self.get('identity', pubkey)
         return response.json()  # type: ignore
+
+    def find_contacts(self, search: str) -> ResponseData:
+        response = self.get('contacts', search)
+        return response.json()  # type: ignore
