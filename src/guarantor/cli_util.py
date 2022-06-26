@@ -4,13 +4,30 @@
 # Copyright (c) 2022 xkudev (xkudev@pm.me) - MIT License
 # SPDX-License-Identifier: MIT
 import os
+import random
 import typing as typ
 
 import click
 
+from guarantor import wordlists
+
 OptionType = typ.Any
 
 Option = typ.Any
+
+
+ENV_HOME        = os.getenv("HOME")
+XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", os.path.join(ENV_HOME, ".config"))
+XDG_DATA_HOME   = os.getenv("XDG_DATA_HOME"  , os.path.join(ENV_HOME, ".local", "share"))
+
+DEFAULT_CONFIG_DIR = os.path.join(XDG_CONFIG_HOME, "guarantor")
+DEFAULT_DATA_DIR   = os.path.join(XDG_DATA_HOME  , "guarantor")
+
+
+class UserError(Exception):
+    # def __init__(self, message: str, exit_code: int = 1) -> None:
+    #     super().__init__(message, exit_code)
+    pass
 
 
 def init_option(name: str, helptxt: str, default: OptionType) -> tuple[Option, str, OptionType]:
@@ -61,3 +78,15 @@ def init_option(name: str, helptxt: str, default: OptionType) -> tuple[Option, s
         help=helptxt.ljust(20) + f"[evn:{env_name}]",
     )
     return (option, env_name, _default)
+
+
+def new_username() -> str:
+    return "-".join(
+        [
+            random.choice(wordlists.ADJECTIVES),
+            random.choice(wordlists.NAMES),
+            str(random.randint(2, 9) * 10 + random.randint(1, 9)),
+            str(random.randint(2, 9) * 10 + random.randint(1, 9)),
+            str(random.randint(2, 9) * 10 + random.randint(1, 9)),
+        ]
+    )

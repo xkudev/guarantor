@@ -37,6 +37,7 @@ def shell(*cmd):
 
 def new_env(**overrides) -> dict[str, str]:
     env = TEST_ENV_DEFAULTS.copy()
+    env['HOME'      ] = os.environ['HOME']
     env['PATH'      ] = os.environ['PATH']
     env['PYTHONPATH'] = os.environ['PYTHONPATH']
     for key, val in overrides:
@@ -56,12 +57,19 @@ class Context:
 
 @pytest.fixture(scope="module")
 def server():
+    capture_serve_output = os.getenv("CAPTURE_SERVE_OUTPUT", "1") == "1"
+
     serve_env = new_env()
 
-    sp.run(["python", "-m", "alembic", "upgrade", "head"])
+    sp.run(["python", "-m", "alembic", "upgrade", "head"], check=True)
     serve_cmd = ["python", "-m", "guarantor", "serve", "--no-reload"]
-    # with sp.Popen(serve_cmd, env=serve_env, stdout=sp.PIPE, stderr=sp.PIPE) as proc:
-    with sp.Popen(serve_cmd, env=serve_env) as proc:
+
+    if capture_serve_output:
+        proc = sp.Popen(serve_cmd, env=serve_env, stdout=sp.PIPE, stderr=sp.PIPE)
+    else:
+        proc = sp.Popen(serve_cmd, env=serve_env)
+
+    with proc:
         time.sleep(3.0)
         try:
             yield proc
