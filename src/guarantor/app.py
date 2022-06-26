@@ -48,13 +48,25 @@ async def info():
 def _identity_response(db_identity: models.Identity) -> schemas.IdentityResponse:
     identity = schemas.Identity(address=db_identity.address, info=json.loads(db_identity.info))
     return schemas.IdentityResponse(
-        path=f"/v1/identity/{db_identity.address}",
+        key=f"/v1/identity/{db_identity.address}",
         identity=identity,
     )
 
 
+@app.post("/v1/envelope", response_model=schemas.EnvelopeResponse)
+async def post_envelope(envelope: schemas.BaseEnvelope, db: Session = database.session):
+
+    # TODO save it
+
+    return schemas.EnvelopeResponse(
+        key=schemas.envelope_key(envelope),
+        envelope=envelope,
+    )
+
+
 @app.post("/v1/identity", response_model=schemas.IdentityResponse)
-async def post_identity(identity: schemas.Identity, db: Session = database.session):
+async def post_identity(identity: schemas.IdentityEnvelope, db: Session = database.session):
+
     db_identity = models.Identity(
         address=identity.address,
         info=json.dumps(identity.info),

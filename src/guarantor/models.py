@@ -11,6 +11,13 @@ from guarantor import database
 # from sqlalchemy import Column, ForeignKey, Integer, String, Float
 
 
+class Envelope(database.Base):
+    __tablename__ = "envelopes"
+
+    key = sa.Column(sa.String, primary_key=True, index=True , nullable=False)
+    envelope = sa.Column(sa.JSON , nullable=False)
+
+
 class Identity(database.Base):
     __tablename__ = "identities"
 

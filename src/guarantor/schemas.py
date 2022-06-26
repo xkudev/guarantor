@@ -26,6 +26,21 @@ class IdentityEnvelope(BaseEnvelope):
     document: Identity
 
 
+def envelope_json_obj(base_envelope: BaseEnvelope) -> str:
+    document_obj                      = base_envelope.document.dict()
+    base_envelope_serialized_document = BaseEnvelope(
+        address=base_envelope.address,
+        document=document_obj,
+        signature=base_envelope.signature,
+    )
+    return base_envelope_serialized_document.dict()
+
+
+def envelope_key(base_envelope: BaseEnvelope) -> str:
+    base_envelope_obj = envelope_json_obj(base_envelope)
+    return crypto.deterministic_json_hash(base_envelope_obj)
+
+
 def verify_base_envelope(base_envelope: BaseEnvelope) -> bool:
     if not base_envelope.signature:
         return False
@@ -50,8 +65,13 @@ def verify_identity_envelope(identity_envelope) -> bool:
     return matching_attress and valid_sig
 
 
+class EnvelopeResponse(pydantic.BaseModel):
+    key    : str
+    envelope: BaseEnvelope
+
+
 class IdentityResponse(pydantic.BaseModel):
-    path    : str
+    key    : str
     identity: IdentityEnvelope
 
 
