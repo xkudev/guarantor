@@ -97,3 +97,88 @@ async def get_identity(address: str, db: Session = database.session):
 # async def add_item(item: Item):
 #     """Test docstring."""
 #     return item
+
+
+# @app.post("/v1/message/{address}", response_model=schemas.AckResponse)
+# async def message(pubkey: str, db: Session = database.session):
+#     pass
+
+
+html = """
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chat</title>
+    </head>
+    <body>
+        <h1>WebSocket Chat</h1>
+        <h2>Your ID: <span id="ws-id"></span></h2>
+        <form action="" onsubmit="sendMessage(event)">
+            <input type="text" id="messageText" autocomplete="off"/>
+            <button>Send</button>
+        </form>
+        <ul id='messages'>
+        </ul>
+        <script>
+            var topic = Date.now()
+            document.querySelector("#ws-id").textContent = topic;
+            var ws = new WebSocket(`ws://localhost:8000/v1/chat/${topic}`);
+            ws.onmessage = function(event) {
+                var messages = document.getElementById('messages')
+                var message = document.createElement('li')
+                var content = document.createTextNode(event.data)
+                message.appendChild(content)
+                messages.appendChild(message)
+            };
+            function sendMessage(event) {
+                var input = document.getElementById("messageText")
+                ws.send(input.value)
+                input.value = ''
+                event.preventDefault()
+            }
+        </script>
+    </body>
+</html>
+"""
+
+
+class ConnectionManager:
+
+    def __init__(self):
+        self.active_connections: list[fastapi.WebSocket] = []
+
+    async def connect(self, ws: fastapi.WebSocket):
+        await ws.accept()
+        self.active_connections.append(ws)
+
+    def disconnect(self, ws: fastapi.WebSocket):
+        self.active_connections.remove(ws)
+
+    async def send(self, message: str, ws: fastapi.WebSocket):
+        await ws.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+
+_manager = ConnectionManager()
+
+
+@app.get("/v1/chat/")
+async def get():
+    return resp.HTMLResponse(html)
+
+
+@app.websocket("/v1/chat/{topic}")
+async def chat(ws: fastapi.WebSocket, topic: str):
+    await _manager.connect(ws)
+    try:
+        await _manager.broadcast(f"Client #{topic} has entered the chat")
+        while True:
+            data = await ws.receive_text()
+            await _manager.send(f"You wrote: {data}", ws)
+            await _manager.broadcast(f"Client #{topic} says: {data}")
+    except fastapi.WebSocketDisconnect:
+        _manager.disconnect(ws)
+        await _manager.broadcast(f"Client #{topic} left the chat")

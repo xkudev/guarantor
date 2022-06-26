@@ -90,3 +90,15 @@ def post_identity(urls: list[str]) -> None:
     identity_resp = http_client.post_identity(identity)
     print("<<<", identity_resp)
     print("???", http_client.get_identity(identity.address))
+
+
+@cli.command()
+@arg("topic")
+@opt("profile", "Profile name"                     , default="default_profile")
+@opt("urls"   , "Connection Urls (comma separated)", default=["http://127.0.0.1:21021"])
+def listen(topic: str, profile: str, urls: list[str]):
+    # pylint: disable=import-outside-toplevel
+
+    http_client = HttpClient(urls)
+    async for message in http_client.listen(topic=topic):
+        print(message)

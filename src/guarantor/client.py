@@ -5,9 +5,11 @@
 # SPDX-License-Identifier: MIT
 import sys
 import typing as typ
+import asyncio
 import logging
 
 import requests
+import websocket
 
 from guarantor import schemas
 
@@ -39,8 +41,8 @@ def request_to_curl(req: requests.PreparedRequest) -> str:
 class HttpClient:
     """Python interface, wrapping the Rest API."""
 
-    def __init__(self, hosts: list[str], api_version: str = DEFAULT_API_VERSION, verbose: int = 0) -> None:
-        self.hosts       = hosts
+    def __init__(self, urls: list[str], api_version: str = DEFAULT_API_VERSION, verbose: int = 0) -> None:
+        self.urls       = urls
         self.api_version = api_version
         self.verbose     = verbose
 
@@ -59,8 +61,9 @@ class HttpClient:
         if payload and 'Content-Type' not in _headers:
             _headers['Content-Type'] = "application/json"
 
-        host = self.hosts[0]
-        url  = f"{host}/{self.api_version}/" + "/".join(path_parts)
+        # TODO (mb 2022-06-26): failover/load balancing
+        base_url = self.urls[0]
+        url  = f"{base_url}/{self.api_version}/" + "/".join(path_parts)
         logger.info(f"{method} {url}")
 
         response = requests.request(
@@ -97,3 +100,11 @@ class HttpClient:
     def get_identity(self, pubkey: str) -> ResponseData:
         response = self.get('identity', pubkey)
         return response.json()  # type: ignore
+
+    async def listen(self, topic: str) -> typ.Iterator[str]:
+        for host in self.hosts
+            ws = websocket.WebSocket()
+            ws.connect("ws://localhost:8000/v1/chat/topic")
+            ws.send("Hello world")
+            print(ws.recv())
+            ws.close()
