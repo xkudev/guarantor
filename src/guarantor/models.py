@@ -14,6 +14,6 @@ from guarantor import database
 class Identity(database.Base):
     __tablename__ = "identities"
 
-    dbid   = sa.Column(sa.Integer, primary_key=True, index=True)
-    pubkey = sa.Column(sa.String , nullable=False)
-    info   = sa.Column(sa.Text   , nullable=False)
+    dbid    = sa.Column(sa.Integer, primary_key=True, index=True)
+    address = sa.Column(sa.String , nullable=False)
+    info    = sa.Column(sa.Text   , nullable=False)
