@@ -11,7 +11,7 @@ import pydantic
 from guarantor import crypto
 
 
-class SignedDocument(pydantic.BaseModel):
+class BaseEvelope(pydantic.BaseModel):
     address  : str
     document : pydantic.BaseModel
     signature: str | None
