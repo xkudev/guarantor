@@ -97,3 +97,8 @@ async def get_identity(address: str, db: Session = database.session):
 # async def add_item(item: Item):
 #     """Test docstring."""
 #     return item
+
+
+@app.post("/v1/message/{address}", response_model=schemas.AckResponse)
+async def message(pubkey: str, db: Session = database.session):
+    pass

@@ -146,40 +146,64 @@ def post_identity(profile: str, urls: list[str]) -> None:
 #         sys.exit(err.args[1])
 
 
+def _find_contact(contact: str, profile_obj: cli_util.Profile, urls: list[str]) -> dict | cli_util.UserError:
+    contacts = init_client(urls).find_contacts(contact)
+    if len(contacts) == 0:
+        errmsg = f'''{"error": "No identity found for username/address : '{contact}'"}'''
+        return (None, cli_util.UserError(errmsg))
+
+    if len(contacts) > 1:
+        errmsg = json.dumps(
+            {
+                'error'   : "Ambiguous username/address : '{contact}'",
+                'contacts': [
+                    {'username': ident['username'], 'address': ident['address']} for ident in identities
+                ],
+            }
+        )
+        return (None, cli_util.UserError(errmsg))
+
+    assert len(contacts) == 1
+    contact_identity = contacts[0]
+
+    profile_obj['aliases' ][contact] = contact_identity['address']
+    profile_obj['aliases' ][contact_identity['username']] = contact_identity['address']
+    profile_obj['aliases' ][contact_identity['address' ]] = contact_identity['address']
+    profile_obj['contacts'][contact_identity['address' ]] = contact_identity
+
+    cli_util.update_profile(profile_obj)
+
+    return (contact_identity, None)
+
+
 @cli.command()
-@arg("user")
+@arg("contact")
 @opt("profile", "Profile name"                     , default="default_profile")
 @opt("urls"   , "Connection Urls (comma separated)", default=["http://127.0.0.1:21021"])
-def add_contact(user: str, profile: str, urls: list[str]) -> None:
+def add_contact(contact: str, profile: str, urls: list[str]) -> None:
     profile_obj = cli_util.read_profile(profile)
 
-    contacts  = init_client(urls).find_contacts(user)
-    if len(contacts) == 0:
-        print(f'''{"error": "No identity found for username/uuid : '{user}'"}''')
-    elif len(contacts) == 1:
-        contact_identity = contacts[0]
-        profile_obj['aliases'][user] = contact_identity['uuid']
-        profile_obj['aliases'][contact_identity['username']] = contact_identity['uuid']
-        profile_obj['aliases'][contact_identity['uuid']] = contact_identity['uuid']
-        profile_obj['contacts'][contact_identity['uuid']] = contact_identity
-    elif len(contacts) > 1:
-        err = {
-            'error'     : "Ambiguous username/uuid : '{user}'",
-            'contacts': [{'uuid': ident['uuid'], 'username': ident['username']} for ident in identities],
-        }
-        print(json.dumps(err))
+    contact_identity, user_err = _find_contact(contact, profile_obj, urls)
+    if user_err:
+        logger.error(f"error - {user_err.args[0]}")
+        sys.exit(user_err.args[1])
 
 
 @cli.command()
-@arg("user")
+@arg("contact")
 @arg("text")
-@opt("profile", "Profile name", default="default_profile")
-def msg(user: str, text: str, profile: str) -> None:
+@opt("profile", "Profile name"                     , default="default_profile")
+@opt("urls"   , "Connection Urls (comma separated)", default=["http://127.0.0.1:21021"])
+def msg(contact: str, text: str, profile: str, urls: list[str]) -> None:
     profile_obj = cli_util.read_profile(profile)
 
-    if user not in profile_obj['contacts']:
-        identities = init_client(urls).find_contacts(user)
+    if contact not in profile_obj['aliases']:
+        contact_identity, user_err = _find_contact(contact, profile_obj, urls)
+        if user_err:
+            logger.error(f"error - {user_err.args[0]}")
+            sys.exit(user_err.args[1])
 
+        init_client(urls).msg(sender=profile, recipient=contact_identity, text=text)
 
     # recipient:  = None
 >>>>>>> wip chitcaht

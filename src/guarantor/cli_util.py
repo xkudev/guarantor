@@ -4,7 +4,6 @@
 # Copyright (c) 2022 xkudev (xkudev@pm.me) - MIT License
 # SPDX-License-Identifier: MIT
 import os
-import json
 import uuid
 import random
 import typing as typ
@@ -13,6 +12,7 @@ import datetime as dt
 
 import click
 
+import guarantor.pretty_json as json
 from guarantor import wordlists
 
 OptionType = typ.Any
@@ -84,17 +84,24 @@ def init_option(name: str, helptxt: str, default: OptionType) -> tuple[Option, s
 
 
 def new_username() -> str:
-    nonce = str(random.randint(2, 9) * 10 + random.randint(1, 9))
+    nonce = "-".join(
+        [
+            str(random.randint(2, 9) * 10 + random.randint(1, 9)),
+            str(random.randint(2, 9) * 10 + random.randint(1, 9)),
+            str(random.randint(2, 9) * 10 + random.randint(1, 9)),
+        ]
+    )
     return random.choice(wordlists.ADJECTIVES) + "-" + random.choice(wordlists.NAMES) + "-" + nonce
 
 
 Profile = typ.NewType('Profile', typ.Any)
 
 
-def update_profile(profile: str, profile_obj: Profile) -> None:
+def update_profile(profile_obj: Profile) -> None:
+    profile_name     = profile_obj['name']
     data_dir         = pl.Path(DEFAULT_DATA_DIR)
-    profile_path     = data_dir / (profile + ".json")
-    tmp_profile_path = data_dir / (profile + ".json.tmp")
+    profile_path     = data_dir / (profile_name + ".json")
+    tmp_profile_path = data_dir / (profile_name + ".json.tmp")
 
     data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -106,8 +113,8 @@ def update_profile(profile: str, profile_obj: Profile) -> None:
     return profile_obj
 
 
-def read_profile(profile: str) -> Profile:
-    profile_path = pl.Path(DEFAULT_DATA_DIR) / (profile + ".json")
+def read_profile(profile_name: str) -> Profile:
+    profile_path = pl.Path(DEFAULT_DATA_DIR) / (profile_name + ".json")
 
     if profile_path.exists():
         with profile_path.open(mode="r", encoding="utf-8") as fobj:
@@ -116,13 +123,14 @@ def read_profile(profile: str) -> Profile:
     else:
         anon_profile = Profile(
             {
-                'uuid'    : str(uuid.uuid4()),
+                'name'    : profile_name,
+                'address' : str(uuid.uuid4()),
                 'username': new_username(),
                 'location': "cyberspace",
                 'creation': dt.datetime.utcnow().isoformat(),
-                'aliases': {},
+                'aliases' : {},
                 'contacts': {},
             }
         )
-        update_profile(profile, anon_profile)
+        update_profile(anon_profile)
         return anon_profile
