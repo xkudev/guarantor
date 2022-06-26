@@ -110,28 +110,15 @@ def post_identity(profile: str, urls: list[str]) -> None:
 
     profile_obj = cli_util.read_profile(profile) or {}
     identity    = schemas.Identity(
-<<<<<<< HEAD
         address="1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv",
-        info={'name': "jdoe", 'birthday': '2000-01-01', 'sex': "yes"},
-||||||| constructed merge base
-        pubkey=str(int(time.time() * 1000)),
-        info={'name': "jdoe", 'birthday': '2000-01-01', 'sex': "yes"},
-=======
-        pubkey=str(int(time.time() * 1000)),
         info=profile_obj,
->>>>>>> wip chitcaht
     )
     print(">>>", identity)
 
     http_client   = init_client(urls)
     identity_resp = http_client.post_identity(identity)
     print("<<<", identity_resp)
-<<<<<<< HEAD
     print("???", http_client.get_identity(identity.address))
-||||||| constructed merge base
-    print("???", http_client.get_identity(identity.pubkey))
-=======
-    print("???", http_client.get_identity(identity.pubkey))
 
 
 # @cli.command()
@@ -206,4 +193,3 @@ def msg(contact: str, text: str, profile: str, urls: list[str]) -> None:
         init_client(urls).msg(sender=profile, recipient=contact_identity, text=text)
 
     # recipient:  = None
->>>>>>> wip chitcaht
