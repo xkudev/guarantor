@@ -1,6 +1,6 @@
 from guarantor import crypto
 from guarantor.schemas import Identity
-from guarantor.schemas import SignedIdentity
+from guarantor.schemas import IdentityEnvelope
 
 
 def test_signed_identity():
