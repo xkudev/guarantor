@@ -25,7 +25,7 @@ def test_signed_identity():
 
         assert not signed_identity.verify()
 
-        signed_identity.sign(wif)
+        identity_envelope.sign(wif)
 
         assert signed_identity.verify()
 
