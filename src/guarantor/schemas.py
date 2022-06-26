@@ -19,19 +19,19 @@ class SignedDocument(pydantic.BaseModel):
     def verify(self) -> bool:
         if not self.signature:
             return False
-        obj = self.document.dict()
+        obj       = self.document.dict()
         hexdigest = crypto.deterministic_json_hash(obj)
         return crypto.verify(self.address, self.signature, hexdigest)
 
     def sign(self, wif: str) -> str:
-        obj = self.document.dict()
+        obj            = self.document.dict()
         hexdigest      = crypto.deterministic_json_hash(obj)
         self.signature = crypto.sign(hexdigest, wif)
         return self.signature
 
 
 class Identity(pydantic.BaseModel):
-    pubkey: str
+    address: str
     info   : dict[str, typ.Any]
 
 
@@ -39,8 +39,9 @@ class SignedIdentity(SignedDocument):
     document: Identity
 
     def verify(self) -> bool:
-        return super().verify()
-        # TODO check document.pubkey matches address
+        valid_sig        = super().verify()
+        matching_attress = self.address == self.document.address
+        return matching_attress and valid_sig
 
 
 class IdentityResponse(pydantic.BaseModel):

@@ -113,7 +113,7 @@ def test_verify():
 
 
 def test_compatibility():
-    for wif, right_addr in [
+    for wif, addr in [
         (
             'L4gXBvYrXHo59HLeyem94D9yLpRkURCHmCwQtPuWW9m6o1X8p8sp',
             '1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv',
@@ -123,12 +123,13 @@ def test_compatibility():
             '1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN',
         ),
     ]:
+        wif_addr = crypto.get_wif_address(wif)
+        assert wif_addr == addr
+
         for i in range(1, 30, 10):
-            msg  = f"test message {'A' * i}"
-            sig  = crypto.sign(msg, wif)
-            addr = crypto.get_wif_address(wif)
-            assert addr == right_addr
-            assert crypto.verify(right_addr, sig, msg)
+            msg = f"test message {'A' * i}"
+            sig = crypto.sign(msg, wif)
+            assert crypto.verify(addr, sig, msg)
 
 
 def __test_fixtures():

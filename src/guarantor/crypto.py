@@ -5,6 +5,10 @@ import jcs
 from pycoin.symbols.btc import network as BTC
 
 
+def generate_wif():
+    pass
+
+
 def validate_address(address: str):
     """Raises ValueError if given address not valid."""
     if not BTC.parse.p2pkh(address):
@@ -21,14 +25,6 @@ def get_wif_address(wif: str) -> str:
     """Returns the bitcoin address of the given input wif."""
     validate_wif(wif)
     return str(BTC.parse.wif(wif).address())
-
-
-def get_pubkey_address(wif: str) -> str:
-    raise Exception("Please implement")
-
-
-def get_pubkey(wif: str) -> str:
-    raise Exception("Please implement")
 
 
 def sign(message: str, wif: str) -> str:
