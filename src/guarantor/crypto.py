@@ -30,10 +30,10 @@ def sign(message: str, wif: str) -> str:
     return str(BTC.msg.sign(key, message, verbose=0))
 
 
-def verify(address: str, signature: str, message: str) -> str:
+def verify(address: str, signature: str, message: str) -> bool:
     """Verify signature if for given input message and address."""
     validate_address(address)
-    return str(BTC.msg.verify(address, signature, message))
+    return bool(BTC.msg.verify(address, signature, message))
 
 
 def deterministic_json_hash(obj: typ.Any) -> str:
