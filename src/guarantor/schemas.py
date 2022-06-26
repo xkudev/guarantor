@@ -46,7 +46,7 @@ class SignedIdentity(SignedDocument):
 
 class IdentityResponse(pydantic.BaseModel):
     path    : str
-    identity: SignedIdentity
+    identity: IdentityEnvelope
 
 
 # maybe maybe maybe
