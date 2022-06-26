@@ -99,7 +99,7 @@ def test_signed_identity_invalid_address():
         addr = crypto.get_wif_address(wif)
         assert addr == right_addr
 
-        signed_identity = SignedIdentity(
+        identity_envelope = IdentityEnvelope(
             address=addr,
             document=Identity(address=addr, info={'foo': "bar"}),
             signature=None,
