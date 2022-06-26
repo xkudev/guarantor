@@ -94,13 +94,12 @@ def test_sign():
             '1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN',
         ),
     ]:
-        key  = BTC.parse.wif(wif)
-        addr = crypto.get_address(wif)
+        addr = crypto.get_wif_address(wif)
         assert addr == right_addr
         for i in range(1, 30, 10):
             msg = f"test message {'A' * i}"
             sig = crypto.sign(msg, wif)
-            assert BTC.msg.verify(key, sig, msg)
+            crypto.verify(addr, sig, msg)
 
 
 def test_verify():
@@ -127,7 +126,7 @@ def test_compatibility():
         for i in range(1, 30, 10):
             msg  = f"test message {'A' * i}"
             sig  = crypto.sign(msg, wif)
-            addr = crypto.get_address(wif)
+            addr = crypto.get_wif_address(wif)
             assert addr == right_addr
             assert crypto.verify(right_addr, sig, msg)
 

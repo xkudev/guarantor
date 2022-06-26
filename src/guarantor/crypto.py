@@ -17,10 +17,18 @@ def validate_wif(wif: str):
         raise ValueError(f"Invalid WIF: {wif}")
 
 
-def get_address(wif: str) -> str:
+def get_wif_address(wif: str) -> str:
     """Returns the bitcoin address of the given input wif."""
     validate_wif(wif)
     return str(BTC.parse.wif(wif).address())
+
+
+def get_pubkey_address(wif: str) -> str:
+    raise Exception("Please implement")
+
+
+def get_pubkey(wif: str) -> str:
+    raise Exception("Please implement")
 
 
 def sign(message: str, wif: str) -> str:
