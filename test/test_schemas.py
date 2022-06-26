@@ -1,6 +1,5 @@
 from guarantor import crypto
-from guarantor.schemas import Identity
-from guarantor.schemas import IdentityEnvelope
+from guarantor import schemas
 
 
 def test_signed_identity():
@@ -17,17 +16,17 @@ def test_signed_identity():
         addr = crypto.get_wif_address(wif)
         assert addr == right_addr
 
-        signed_identity = SignedIdentity(
+        identity_envelope = schemas.IdentityEnvelope(
             address=addr,
-            document=Identity(address=addr, info={'foo': "bar"}),
+            document=schemas.Identity(address=addr, info={'foo': "bar"}),
             signature=None,
         )
 
-        assert not signed_identity.verify()
+        assert not schemas.verify_identity_envelope(identity_envelope)
 
-        identity_envelope.sign(wif)
+        identity_envelope = schemas.sign_envelope(identity_envelope, wif)
 
-        assert identity_envelope.verify()
+        assert schemas.verify_identity_envelope(identity_envelope)
 
 
 def test_signed_identity_invalid_sig():
@@ -44,17 +43,17 @@ def test_signed_identity_invalid_sig():
         addr = crypto.get_wif_address(wif)
         assert addr == right_addr
 
-        signed_identity = SignedIdentity(
+        identity_envelope = schemas.IdentityEnvelope(
             address=addr,
-            document=Identity(address=addr, info={'foo': "bar"}),
+            document=schemas.Identity(address=addr, info={'foo': "bar"}),
             signature=None,
         )
 
-        assert not signed_identity.verify()
+        assert not schemas.verify_identity_envelope(identity_envelope)
 
-        signed_identity.signature = "DEADBEEF"
+        identity_envelope.signature = "DEADBEEF"
 
-        assert not signed_identity.verify()
+        assert not schemas.verify_identity_envelope(identity_envelope)
 
 
 def test_signed_identity_invalid_identity_address():
@@ -71,18 +70,18 @@ def test_signed_identity_invalid_identity_address():
         addr = crypto.get_wif_address(wif)
         assert addr == right_addr
 
-        signed_identity = SignedIdentity(
+        identity_envelope = schemas.IdentityEnvelope(
             address=addr,
-            document=Identity(address=addr, info={'foo': "bar"}),
+            document=schemas.Identity(address=addr, info={'foo': "bar"}),
             signature=None,
         )
 
-        assert not signed_identity.verify()
-        signed_identity.sign(wif)
-        assert signed_identity.verify()
+        assert not schemas.verify_identity_envelope(identity_envelope)
+        identity_envelope = schemas.sign_envelope(identity_envelope, wif)
+        assert schemas.verify_identity_envelope(identity_envelope)
 
-        signed_identity.document.address = "1BTF7gU1EmgasGh85ypacDvsVKg4weZMfz"
-        assert not signed_identity.verify()
+        identity_envelope.document.address = "1BTF7gU1EmgasGh85ypacDvsVKg4weZMfz"
+        assert not schemas.verify_identity_envelope(identity_envelope)
 
 
 def test_signed_identity_invalid_address():
@@ -99,18 +98,18 @@ def test_signed_identity_invalid_address():
         addr = crypto.get_wif_address(wif)
         assert addr == right_addr
 
-        identity_envelope = IdentityEnvelope(
+        identity_envelope = schemas.IdentityEnvelope(
             address=addr,
-            document=Identity(address=addr, info={'foo': "bar"}),
+            document=schemas.Identity(address=addr, info={'foo': "bar"}),
             signature=None,
         )
 
-        assert not signed_identity.verify()
-        signed_identity.sign(wif)
-        assert signed_identity.verify()
+        assert not schemas.verify_identity_envelope(identity_envelope)
+        identity_envelope = schemas.sign_envelope(identity_envelope, wif)
+        assert schemas.verify_identity_envelope(identity_envelope)
 
-        signed_identity.address = "1BTF7gU1EmgasGh85ypacDvsVKg4weZMfz"
-        assert not signed_identity.verify()
+        identity_envelope.address = "1BTF7gU1EmgasGh85ypacDvsVKg4weZMfz"
+        assert not schemas.verify_identity_envelope(identity_envelope)
 
 
 def test_signed_identity_invalid_document():
@@ -127,16 +126,16 @@ def test_signed_identity_invalid_document():
         addr = crypto.get_wif_address(wif)
         assert addr == right_addr
 
-        signed_identity = SignedIdentity(
+        identity_envelope = schemas.IdentityEnvelope(
             address=addr,
-            document=Identity(address=addr, info={'foo': "bar"}),
+            document=schemas.Identity(address=addr, info={'foo': "bar"}),
             signature=None,
         )
 
-        assert not signed_identity.verify()
+        assert not schemas.verify_identity_envelope(identity_envelope)
 
-        signed_identity.sign(wif)
+        identity_envelope = schemas.sign_envelope(identity_envelope, wif)
 
-        signed_identity.document = Identity(address=addr, info={'foo': "bar", 'bam': "baz"})
+        identity_envelope.document = schemas.Identity(address=addr, info={'foo': "bar", 'bam': "baz"})
 
-        assert not signed_identity.verify()
+        assert not schemas.verify_identity_envelope(identity_envelope)

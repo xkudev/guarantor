@@ -11,23 +11,10 @@ import pydantic
 from guarantor import crypto
 
 
-class BaseEvelope(pydantic.BaseModel):
+class BaseEnvelope(pydantic.BaseModel):
     address  : str
     document : pydantic.BaseModel
     signature: str | None
-
-    def verify(self) -> bool:
-        if not self.signature:
-            return False
-        obj       = self.document.dict()
-        hexdigest = crypto.deterministic_json_hash(obj)
-        return crypto.verify(self.address, self.signature, hexdigest)
-
-    def sign(self, wif: str) -> str:
-        obj            = self.document.dict()
-        hexdigest      = crypto.deterministic_json_hash(obj)
-        self.signature = crypto.sign(hexdigest, wif)
-        return self.signature
 
 
 class Identity(pydantic.BaseModel):
@@ -35,13 +22,32 @@ class Identity(pydantic.BaseModel):
     info   : dict[str, typ.Any]
 
 
-class SignedIdentity(SignedDocument):
+class IdentityEnvelope(BaseEnvelope):
     document: Identity
 
-    def verify(self) -> bool:
-        valid_sig        = super().verify()
-        matching_attress = self.address == self.document.address
-        return matching_attress and valid_sig
+
+def verify_base_envelope(base_envelope: BaseEnvelope) -> bool:
+    if not base_envelope.signature:
+        return False
+    obj       = base_envelope.document.dict()
+    hexdigest = crypto.deterministic_json_hash(obj)
+    return crypto.verify(address=base_envelope.address, signature=base_envelope.signature, message=hexdigest)
+
+
+def sign_envelope(base_envelope: BaseEnvelope, wif: str) -> BaseEnvelope:
+    obj       = base_envelope.document.dict()
+    hexdigest = crypto.deterministic_json_hash(obj)
+    return BaseEnvelope(
+        address=base_envelope.address,
+        document=base_envelope.document,
+        signature=crypto.sign(hexdigest, wif),
+    )
+
+
+def verify_identity_envelope(identity_envelope) -> bool:
+    valid_sig        = verify_base_envelope(base_envelope=identity_envelope)
+    matching_attress = identity_envelope.address == identity_envelope.document.address
+    return matching_attress and valid_sig
 
 
 class IdentityResponse(pydantic.BaseModel):
