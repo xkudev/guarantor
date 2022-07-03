@@ -57,8 +57,8 @@ class HttpClient:
         self.max_retries = max_retries
         self.error_decay = 10
 
-        self.server_errors  = collections.defaultdict(int)
-        self.server_latency = collections.defaultdict(float)
+        self.server_errors : dict[str, float] = collections.defaultdict(float)
+        self.server_latency: dict[str, float] = collections.defaultdict(float)
 
     def _url_penaulty(self, url: str) -> float:
         fuzz      = random.random() / 10
