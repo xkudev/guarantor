@@ -14,7 +14,9 @@ def generate_wif(master_secret_hex: str | None = None) -> str:
     else:
         master_secret = h2b(master_secret_hex)
     key = BTC.keys.bip32_seed(master_secret)
-    return key.wif()
+    wif = key.wif()
+    assert isinstance(wif, str)
+    return wif
 
 
 def validate_address(address: str):
