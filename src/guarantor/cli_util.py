@@ -16,7 +16,7 @@ OptionType = typ.Any
 Option = typ.Any
 
 
-ENV_HOME        = os.environ["HOME"]
+ENV_HOME        = os.environ['HOME']
 XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", os.path.join(ENV_HOME, ".config"))
 XDG_DATA_HOME   = os.getenv("XDG_DATA_HOME"  , os.path.join(ENV_HOME, ".local", "share"))
 
@@ -34,6 +34,7 @@ def init_option(name: str, helptxt: str, default: OptionType) -> tuple[Option, s
     # type is derived via default  (prototype approach)
 
     assert name == name.lower()
+    assert default is not None  # use arge instead
 
     env_name = "GUARANTOR_" + name.upper()
 

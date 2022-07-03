@@ -76,17 +76,31 @@ def info(urls: list[str]) -> None:
 
 
 @cli.command()
-@opt("urls", "Connection Urls (comma separated)", default=["http://127.0.0.1:21021"])
-def post_identity(urls: list[str]) -> None:
+@arg("wif")
+@opt("urls" , "Connection Urls (comma separated)"         , default=["http://127.0.0.1:21021"])
+@opt("props", "Identity properties as json parsable dict.", default="{}")
+def post_identity(urls: list[str], wif: str, props: str) -> None:
+
     # pylint: disable=import-outside-toplevel
+    from guarantor import crypto
     from guarantor import schemas
 
     http_client = init_client(urls)
-    identity    = schemas.Identity(
-        address="1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv",
-        info={'name': "jdoe", 'birthday': '2000-01-01', 'sex': "yes"},
+
+    _props: dict[str, typ.Any] = json.loads(props)
+
+    address  = crypto.get_wif_address(wif)
+    identity = schemas.sign_envelope(
+        schemas.IdentityEnvelope(
+            address=address,
+            document=schemas.Identity(
+                address=address,
+                props=_props,
+            ),
+            signature=None,
+        ),
+        wif,
     )
-    print(">>>", identity)
+
     identity_resp = http_client.post_identity(identity)
-    print("<<<", identity_resp)
-    print("???", http_client.get_identity(identity.address))
+    print(json.dumps(identity_resp))

@@ -19,9 +19,9 @@ depends_on    = None
 def upgrade() -> None:
     op.create_table(
         'identities',
-        sa.Column('dbid'  , sa.Integer, primary_key=True),
-        sa.Column('pubkey', sa.String(100), nullable=False),
-        sa.Column('info'  , sa.Text),
+        sa.Column('dbid'   , sa.Integer, primary_key=True),
+        sa.Column('address', sa.String(100), nullable=False),
+        sa.Column('props'  , sa.Text),
     )
 
 
