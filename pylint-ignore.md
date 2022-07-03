@@ -20,26 +20,3 @@ The recommended approach to using `pylint-ignore` is:
 3. If a message is a false positive, add a comment of this form to your code:
    `# pylint:disable=<symbol> ; explain why this is a false positive`
 
-
-# Overview
-
- - [R0902: too-many-instance-attributes (1x)](#r0902-too-many-instance-attributes)
-
-
-# R0902: too-many-instance-attributes
-
-## File src/guarantor/client.py - Line 42 - R0902 (too-many-instance-attributes)
-
-- `message: Too many instance attributes (8/7)`
-- `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2022-07-03T17:19:20`
-
-```
-  40: 
-  41: 
-> 42: class HttpClient:
-  43:     """Python interface, wrapping the Rest API."""
-  44:
-```
-
-
