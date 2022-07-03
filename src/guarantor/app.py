@@ -118,17 +118,16 @@ HTML = """
     </head>
     <body>
         <h1>WebSocket Chat</h1>
-        <h2>Your ID: <span id="ws-id"></span></h2>
         <form action="" onsubmit="sendMessage(event)">
             <input type="text" id="messageText" autocomplete="off"/>
             <button>Send</button>
         </form>
-        <ul id='messages'>
-        </ul>
+
+        <ul id='messages'></ul>
+
         <script>
-            var topic = Date.now()
-            document.querySelector("#ws-id").textContent = topic;
-            var ws = new WebSocket(`ws://localhost:8000/v1/chat/${topic}`);
+            var topic = document.location.hash.slice(1);
+            var ws = new WebSocket(`ws://localhost:8000/v1/chat/${topic}/`);
             ws.onmessage = function(event) {
                 var messages = document.getElementById('messages')
                 var message  = document.createElement('li')
@@ -138,7 +137,19 @@ HTML = """
             };
             function sendMessage(event) {
                 var input = document.getElementById("messageText")
-                ws.send(input.value)
+
+                fetch(`/v1/chat/${topic}/`, {
+                  method: "POST",
+                  headers: {'Content-Type': 'application/json'},
+                  body: JSON.stringify({
+                    topic: topic,
+                    iso_ts: new Date().toISOString(),
+                    text: input.value,
+                  }),
+                })
+
+                // ws.send(input.value)
+
                 input.value = ''
                 event.preventDefault()
             }
