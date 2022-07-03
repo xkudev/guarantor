@@ -23,25 +23,23 @@ The recommended approach to using `pylint-ignore` is:
 
 # Overview
 
- - [W0511: fixme (1x)](#w0511-fixme)
+ - [R0902: too-many-instance-attributes (1x)](#r0902-too-many-instance-attributes)
 
 
-# W0511: fixme
+# R0902: too-many-instance-attributes
 
-## File src/guarantor/client.py - Line 64 - W0511 (fixme)
+## File src/guarantor/client.py - Line 42 - R0902 (too-many-instance-attributes)
 
-- `message: TODO (mb 2022-06-26): failover/load balancing`
+- `message: Too many instance attributes (8/7)`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2022-07-03T13:56:37`
+- `date   : 2022-07-03T17:19:20`
 
 ```
-  49:     def request(
-  ...
-  62:             _headers['Content-Type'] = "application/json"
-  63: 
-> 64:         # TODO (mb 2022-06-26): failover/load balancing
-  65:         base_url = self.urls[0].rstrip("/")
-  66:         path     = f"/{self.api_version}/" + "/".join(path_parts)
+  40: 
+  41: 
+> 42: class HttpClient:
+  43:     """Python interface, wrapping the Rest API."""
+  44:
 ```
 
 
