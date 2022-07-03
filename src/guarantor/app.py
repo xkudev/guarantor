@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MIT
 import json
 import time
+import random
 import asyncio
 import logging
 import pathlib as pl
@@ -43,6 +44,10 @@ async def root():
 
 @app.get("/v1/info", response_class=http_utils.JSONResponse)
 async def info():
+    if random.randint(0, 100) == 1:
+        # provoke random errors to test client retry logic
+        raise fastapi.HTTPException(status_code=504, detail="Random timeout for testing")
+
     return {
         'name'   : "guarantor",
         'version': guarantor.__version__,

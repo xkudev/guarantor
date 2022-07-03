@@ -3,10 +3,11 @@
 #
 # Copyright (c) 2022 xkudev (xkudev@pm.me) - MIT License
 # SPDX-License-Identifier: MIT
-import sys
 import time
+import random
 import typing as typ
 import logging
+import collections
 
 import requests
 import websocket
@@ -41,10 +42,29 @@ def request_to_curl(req: requests.PreparedRequest) -> str:
 class HttpClient:
     """Python interface, wrapping the Rest API."""
 
-    def __init__(self, urls: list[str], api_version: str = DEFAULT_API_VERSION, verbose: int = 0) -> None:
+    def __init__(
+        self,
+        urls       : list[str],
+        api_version: str   = DEFAULT_API_VERSION,
+        verbose    : int   = 0,
+        timeout    : float = 3,
+        max_retries: int   = 5,
+    ) -> None:
         self.urls        = urls
         self.api_version = api_version
         self.verbose     = verbose
+        self.timeout     = timeout
+        self.max_retries = max_retries
+        self.error_decay = 10
+
+        self.server_errors  = collections.defaultdict(int)
+        self.server_latency = collections.defaultdict(float)
+
+    def _url_penaulty(self, url: str) -> float:
+        fuzz      = random.random() / 10
+        latency   = self.server_latency[url]
+        error_age = min(self.error_decay, time.time() - self.server_errors[url])
+        return latency + (self.error_decay - error_age) + fuzz
 
     def request(
         self,
@@ -61,28 +81,51 @@ class HttpClient:
         if payload and 'Content-Type' not in _headers:
             _headers['Content-Type'] = "application/json"
 
-        # TODO (mb 2022-06-26): failover/load balancing
-        base_url = self.urls[0].rstrip("/")
-        path     = f"/{self.api_version}/" + "/".join(path_parts)
-        path     = path.replace("//", "/")
-        url      = base_url + path
-        logger.info(f"{method} {url}")
+        num_tries = 0
 
-        response = requests.request(
-            method,
-            url=url,
-            # params=params,
-            data=payload,
-            headers=_headers,
-        )
-        if self.verbose > 1:
-            logger.debug(request_to_curl(req=response.request))
+        while True:
+            num_tries += 1
+            base_url = self.urls[0]
+            path     = f"/{self.api_version}/" + "/".join(path_parts)
+            path     = path.replace("//", "/")
+            url      = base_url.rstrip("/") + path
 
-        if not response.ok:
-            sys.stderr.write(response.content.decode("utf-8") + "\n")
-            response.raise_for_status()
+            logger.info(f"{method} {url}")
 
-        return response
+            request_start = time.time()
+
+            response = requests.request(
+                method,
+                url=url,
+                # params=params,
+                data=payload,
+                headers=_headers,
+            )
+
+            if self.verbose > 1:
+                logger.debug(request_to_curl(req=response.request))
+
+            if response.ok:
+                latency     = time.time() - request_start
+                old_latency = self.server_latency[base_url]
+
+                self.server_latency[base_url] = (latency + old_latency) / 2
+                self.urls.sort(key=self._url_penaulty)
+                return response
+
+            server_errmsg = response.content.decode("utf-8")
+            logger.debug(f"error for {url} - {server_errmsg}")
+
+            if response.status_code >= 500:
+                self.server_errors[base_url] = time.time()
+                if num_tries >= self.max_retries:
+                    response.raise_for_status()
+                else:
+                    time.sleep(100 * 2 ** num_tries / 1000)
+                self.urls.sort(key=self._url_penaulty)
+            else:
+                # client error
+                response.raise_for_status()
 
     def get(self, *args, **kwargs) -> requests.Response:
         kwargs['method'] = 'GET'
@@ -109,11 +152,10 @@ class HttpClient:
 
     async def listen(self, topic: str) -> typ.AsyncGenerator[str, None]:
         for http_base_url in self.urls:
-            http_proto, url_part = http_base_url.split("://", 1)
+            http_proto, host_addr = http_base_url.split("://", 1)
             assert http_proto in ("http", "https")
             ws_proto     = "ws" if http_proto == "http" else "https"
-            ws_base_url  = ws_proto    + "://" + url_part
-            ws_topic_url = ws_base_url + f"/v1/chat/{topic}/"
+            ws_topic_url = ws_proto + "://" + host_addr + f"/v1/chat/{topic}/"
 
             retries = 0
             while retries < 5:
