@@ -54,16 +54,20 @@ def _identity_response(db_identity: models.Identity) -> schemas.IdentityResponse
 
 
 @app.post("/v1/identity", response_model=schemas.IdentityResponse)
-async def post_identity(identity: schemas.Identity, db: Session = database.session):
+async def post_identity(identity: schemas.IdentityEnvelope, db: Session = database.session):
+
     db_identity = models.Identity(
-        address=identity.address,
-        info=json.dumps(identity.info),
+        address=identity.document.address,
+        props=json.dumps(identity.document.props),
     )
     db.add(db_identity)
     db.commit()
     db.refresh(db_identity)
 
-    return _identity_response(db_identity)
+    return schemas.IdentityResponse(
+        path=f"/v1/identity/{identity.document.address}",
+        identity=identity,
+    )
 
 
 @app.get("/v1/identity/{address}", response_model=schemas.IdentityResponse)

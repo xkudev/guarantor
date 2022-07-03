@@ -18,7 +18,7 @@ def test_signed_identity():
 
         identity_envelope = schemas.IdentityEnvelope(
             address=addr,
-            document=schemas.Identity(address=addr, info={'foo': "bar"}),
+            document=schemas.Identity(address=addr, props={'foo': "bar"}),
             signature=None,
         )
 
@@ -45,7 +45,7 @@ def test_signed_identity_invalid_sig():
 
         identity_envelope = schemas.IdentityEnvelope(
             address=addr,
-            document=schemas.Identity(address=addr, info={'foo': "bar"}),
+            document=schemas.Identity(address=addr, props={'foo': "bar"}),
             signature=None,
         )
 
@@ -72,7 +72,7 @@ def test_signed_identity_invalid_identity_address():
 
         identity_envelope = schemas.IdentityEnvelope(
             address=addr,
-            document=schemas.Identity(address=addr, info={'foo': "bar"}),
+            document=schemas.Identity(address=addr, props={'foo': "bar"}),
             signature=None,
         )
 
@@ -100,7 +100,7 @@ def test_signed_identity_invalid_address():
 
         identity_envelope = schemas.IdentityEnvelope(
             address=addr,
-            document=schemas.Identity(address=addr, info={'foo': "bar"}),
+            document=schemas.Identity(address=addr, props={'foo': "bar"}),
             signature=None,
         )
 
@@ -128,7 +128,7 @@ def test_signed_identity_invalid_document():
 
         identity_envelope = schemas.IdentityEnvelope(
             address=addr,
-            document=schemas.Identity(address=addr, info={'foo': "bar"}),
+            document=schemas.Identity(address=addr, props={'foo': "bar"}),
             signature=None,
         )
 
@@ -136,6 +136,6 @@ def test_signed_identity_invalid_document():
 
         identity_envelope = schemas.sign_envelope(identity_envelope, wif)
 
-        identity_envelope.document = schemas.Identity(address=addr, info={'foo': "bar", 'bam': "baz"})
+        identity_envelope.document = schemas.Identity(address=addr, props={'foo': "bar", 'bam': "baz"})
 
         assert not schemas.verify_identity_envelope(identity_envelope)
