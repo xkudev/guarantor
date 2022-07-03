@@ -1,3 +1,2 @@
-export GUARANTOR_HOST=localhost
-export GUARANTOR_PORT=8000
+export GUARANTOR_BIND=localhost:8000
 export GUARANTOR_URLS=http://localhost:8000

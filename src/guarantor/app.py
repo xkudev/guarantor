@@ -5,11 +5,15 @@
 # SPDX-License-Identifier: MIT
 import json
 import time
+import asyncio
+import logging
 import pathlib as pl
 import datetime as dt
+import collections
 
 import fastapi
 import fastapi.responses as resp
+import websockets.exceptions
 from sqlalchemy.orm import Session
 from fastapi.staticfiles import StaticFiles
 
@@ -24,6 +28,8 @@ from guarantor import http_utils
 
 app = fastapi.FastAPI()
 
+
+logger = logging.getLogger("guarantor.app")
 
 static_dir = pl.Path(__file__).parent / "static"
 
@@ -104,7 +110,7 @@ async def get_identity(address: str, db: Session = database.session):
 #     pass
 
 
-html = """
+HTML = """
 <!DOCTYPE html>
 <html>
     <head>
@@ -125,8 +131,8 @@ html = """
             var ws = new WebSocket(`ws://localhost:8000/v1/chat/${topic}`);
             ws.onmessage = function(event) {
                 var messages = document.getElementById('messages')
-                var message = document.createElement('li')
-                var content = document.createTextNode(event.data)
+                var message  = document.createElement('li')
+                var content  = document.createTextNode(event.data)
                 message.appendChild(content)
                 messages.appendChild(message)
             };
@@ -142,43 +148,54 @@ html = """
 """
 
 
-class ConnectionManager:
-
-    def __init__(self):
-        self.active_connections: list[fastapi.WebSocket] = []
-
-    async def connect(self, ws: fastapi.WebSocket):
-        await ws.accept()
-        self.active_connections.append(ws)
-
-    def disconnect(self, ws: fastapi.WebSocket):
-        self.active_connections.remove(ws)
-
-    async def send(self, message: str, ws: fastapi.WebSocket):
-        await ws.send_text(message)
-
-    async def broadcast(self, message: str):
-        for connection in self.active_connections:
-            await connection.send_text(message)
-
-
-_manager = ConnectionManager()
-
-
 @app.get("/v1/chat/")
-async def get():
-    return resp.HTMLResponse(html)
+async def get_chat_html():
+    return resp.HTMLResponse(HTML)
 
 
-@app.websocket("/v1/chat/{topic}")
-async def chat(ws: fastapi.WebSocket, topic: str):
-    await _manager.connect(ws)
+Topic = str
+
+_chatlogs: dict[Topic, list[schemas.ChatMessage]] = collections.defaultdict(list)
+
+
+@app.post("/v1/chat/{topic}/", response_class=http_utils.JSONResponse)
+async def post_chat_message(topic: Topic, message: schemas.ChatMessage):
+    assert message.topic == topic
+    _chatlogs[topic].append(message)
+    message_id = len(_chatlogs[topic])
+    return {'path': f"/v1/chat/{topic}/{message_id}"}
+
+
+MAX_IDLE = 9
+
+
+@app.websocket("/v1/chat/{topic}/")
+async def chat(topic: Topic, ws: fastapi.WebSocket):
+    await ws.accept()
     try:
-        await _manager.broadcast(f"Client #{topic} has entered the chat")
+        cursor       = 0
+        last_message = time.time()
+
         while True:
-            data = await ws.receive_text()
-            await _manager.send(f"You wrote: {data}", ws)
-            await _manager.broadcast(f"Client #{topic} says: {data}")
+            message = None
+            if cursor < len(_chatlogs[topic]):
+                msg     = _chatlogs[topic][cursor]
+                message = msg.iso_ts + " - " + msg.text
+                cursor += 1
+            else:
+                idle = time.time() - last_message
+                if idle > MAX_IDLE:
+                    iso_ts  = dt.datetime.utcnow().isoformat()
+                    message = iso_ts + " - heartbeat"
+
+            if message:
+                try:
+                    await ws.send_text(message)
+                    last_message = time.time()
+                except websockets.exceptions.ConnectionClosedError:
+                    logger.info("client disconnect")
+                    return
+            else:
+                await asyncio.sleep(0.1)
     except fastapi.WebSocketDisconnect:
-        _manager.disconnect(ws)
-        await _manager.broadcast(f"Client #{topic} left the chat")
+        pass

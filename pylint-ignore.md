@@ -23,23 +23,58 @@ The recommended approach to using `pylint-ignore` is:
 
 # Overview
 
- - [C0103: invalid-name (1x)](#c0103-invalid-name)
+ - [W0511: fixme (1x)](#w0511-fixme)
+ - [W0613: unused-argument (2x)](#w0613-unused-argument)
 
 
-# C0103: invalid-name
+# W0511: fixme
 
-## File src/guarantor/main.py - Line 30 - C0103 (invalid-name)
+## File src/guarantor/client.py - Line 64 - W0511 (fixme)
 
-- `message: Argument name "q" doesn't conform to snake_case naming style`
+- `message: TODO (mb 2022-06-26): failover/load balancing`
 - `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2022-06-09T10:46:01`
+- `date   : 2022-07-03T13:56:37`
 
 ```
-  28: 
-  29: @app.get("/testint/{param}")
-> 30: async def testint(param: int, q: int | None = None):
-  31:     return {'message': param, 'q': q}
-  32:
+  49:     def request(
+  ...
+  62:             _headers['Content-Type'] = "application/json"
+  63: 
+> 64:         # TODO (mb 2022-06-26): failover/load balancing
+  65:         base_url = self.urls[0].rstrip("/")
+  66:         path     = f"/{self.api_version}/" + "/".join(path_parts)
+```
+
+
+# W0613: unused-argument
+
+## File src/guarantor/cli.py - Line 105 - W0613 (unused-argument)
+
+- `message: Unused argument 'profile'`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2022-07-03T13:56:37`
+
+```
+  103: @opt("profile", "Profile name"                     , default="default_profile")
+  104: @opt("urls"   , "Connection Urls (comma separated)", default=["http://127.0.0.1:21021"])
+> 105: def chat(topic: str, message: str, profile: str, urls: list[str]):
+  106:     # pylint: disable=import-outside-toplevel
+  107:     from guarantor import schemas
+```
+
+
+## File src/guarantor/cli.py - Line 119 - W0613 (unused-argument)
+
+- `message: Unused argument 'profile'`
+- `author : Manuel Barkhau <mbarkhau@gmail.com>`
+- `date   : 2022-07-03T13:56:37`
+
+```
+  117: @opt("profile", "Profile name"                     , default="default_profile")
+  118: @opt("urls"   , "Connection Urls (comma separated)", default=["http://127.0.0.1:21021"])
+> 119: def listen(topic: str, profile: str, urls: list[str]):
+  120:     http_client = init_client(urls)
+  121:
 ```
 
 

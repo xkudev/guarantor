@@ -16,8 +16,7 @@ import guarantor.cli
 
 TEST_ENV_DEFAULTS = {
     'GUARANTOR_URLS'  : "http://localhost:8021",
-    'GUARANTOR_HOST'  : "0.0.0.0",
-    'GUARANTOR_PORT'  : "8021",
+    'GUARANTOR_BIND'  : "0.0.0.0:8021",
     'GUARANTOR_DB_URL': "sqlite:///./guarantor.sqlite3",
 }
 

@@ -55,6 +55,12 @@ class IdentityResponse(pydantic.BaseModel):
     identity: IdentityEnvelope
 
 
+class ChatMessage(pydantic.BaseModel):
+    topic : str
+    iso_ts: str
+    text  : str
+
+
 # maybe maybe maybe
 #
 #

@@ -7,7 +7,9 @@
 
 import json
 import typing as typ
+import asyncio
 import logging
+import datetime as dt
 
 import click
 
@@ -53,19 +55,22 @@ def cli() -> None:
 
 
 @cli.command()
-@opt("host"     , "IP to serve on"          , default="0.0.0.0")
-@opt("port"     , "Port to serve on"        , default=21021)
+@opt("bind"     , "IP:port to serve on"     , default="0.0.0.0:21021")
 @opt("db_url"   , "Database Url"            , default="sqlite:///./guarantor.sqlite3")
 @opt("no_reload", "Disable realod for serve", default=False)
-def serve(host: str, port: int, db_url: str, no_reload: bool) -> None:
+def serve(bind: str, db_url: str, no_reload: bool) -> None:
     """Serve API app with uvicorn"""
     # pylint: disable=import-outside-toplevel
     import uvicorn
 
     from guarantor import database
 
+    if "://" in bind:
+        proto, bind = bind.split("://")
+        assert proto == "http"
+    host, port = bind.strip("/").split(":")
     database.DB_URL = db_url
-    uvicorn.run("guarantor.app:app", host=host, port=port, reload=not no_reload)
+    uvicorn.run("guarantor.app:app", host=host, port=int(port), reload=not no_reload)
 
 
 @cli.command()
@@ -93,12 +98,32 @@ def post_identity(urls: list[str]) -> None:
 
 
 @cli.command()
+@opt("topic"  , "Topic/Chatroom"                   , default="lobby")
+@opt("message", "Your Message"                     , default="Hello, World!")
+@opt("profile", "Profile name"                     , default="default_profile")
+@opt("urls"   , "Connection Urls (comma separated)", default=["http://127.0.0.1:21021"])
+def chat(topic: str, message: str, profile: str, urls: list[str]):
+    # pylint: disable=import-outside-toplevel
+    from guarantor import schemas
+
+    http_client = init_client(urls)
+    iso_ts      = dt.datetime.utcnow().isoformat()
+    result      = http_client.chat(msg=schemas.ChatMessage(topic=topic, iso_ts=iso_ts, text=message))
+    print(result)
+
+
+@cli.command()
 @arg("topic")
 @opt("profile", "Profile name"                     , default="default_profile")
 @opt("urls"   , "Connection Urls (comma separated)", default=["http://127.0.0.1:21021"])
 def listen(topic: str, profile: str, urls: list[str]):
-    # pylint: disable=import-outside-toplevel
+    http_client = init_client(urls)
 
-    http_client = HttpClient(urls)
-    async for message in http_client.listen(topic=topic):
-        print(message)
+    async def _listener() -> None:
+        async for message in http_client.listen(topic=topic):
+            if message == 'close':
+                return
+
+            print(dt.datetime.utcnow().isoformat(), "-", message)
+
+    asyncio.run(_listener())
