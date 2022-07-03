@@ -13,6 +13,7 @@ import pytest
 import click.testing
 
 import guarantor.cli
+import guarantor.schemas
 
 TEST_ENV_DEFAULTS = {
     'GUARANTOR_URLS'  : "http://localhost:8021",
@@ -48,15 +49,17 @@ class Context:
     def __init__(self, tmpdir: pl.Path) -> None:
         self.cli_env = new_env()
 
-    def cli(self, *argv):
+    def cli(self, *argv, **kwargs):
         assert self.cli_env['GUARANTOR_URLS'] == "http://localhost:8021"
         runner = click.testing.CliRunner(env=self.cli_env)
-        return runner.invoke(guarantor.cli.cli, list(argv))
+        return runner.invoke(
+            guarantor.cli.cli, list(argv) + [f"--{k}={v}" for k, v in kwargs.items()], catch_exceptions=False
+        )
 
 
 @pytest.fixture(scope="module")
 def server():
-    capture_serve_output = os.getenv("CAPTURE_SERVE_OUTPUT", "1") == "1"
+    capture_serve_output = os.getenv("CAPTURE_SERVE_OUTPUT", "0") == "1"
 
     serve_env = new_env()
 
@@ -117,3 +120,18 @@ def test_info(ctx: Context, server: sp.Popen):
     assert res.exit_code == 0
     server_info = json.loads(res.output)
     assert set(server_info.keys()) >= {'name', 'version', 'time', 'iso8601'}
+
+
+@pytest.mark.skipif(IS_IN_CI_CONTEXT, reason="HTTP server doesn't want to start on CI")
+def test_post_identity(ctx: Context, server: sp.Popen):
+    res = ctx.cli(
+        "post-identity", "L4gXBvYrXHo59HLeyem94D9yLpRkURCHmCwQtPuWW9m6o1X8p8sp", props='{"foo": "bar"}'
+    )
+
+    assert res.exit_code == 0
+
+    identity_response = guarantor.schemas.IdentityResponse(**json.loads(res.output))
+
+    assert identity_response.identity.address == '1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv'
+    assert guarantor.schemas.verify_identity_envelope(identity_response.identity)
+    assert identity_response.identity.document.props == {'foo': "bar"}

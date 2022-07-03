@@ -35,6 +35,7 @@ def init_option(name: str, helptxt: str, default: OptionType) -> tuple[Option, s
 
     assert name == name.lower()
     assert not name.startswith("-")
+    assert default is not None  # use arge instead
 
     env_name = "GUARANTOR_" + name.upper()
 

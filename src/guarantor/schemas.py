@@ -19,11 +19,16 @@ class BaseEnvelope(pydantic.BaseModel):
 
 class Identity(pydantic.BaseModel):
     address: str
-    info   : dict[str, typ.Any]
+    props  : dict[str, typ.Any]
 
 
 class IdentityEnvelope(BaseEnvelope):
     document: Identity
+
+
+class IdentityResponse(pydantic.BaseModel):
+    path    : str
+    identity: IdentityEnvelope
 
 
 def verify_base_envelope(base_envelope: BaseEnvelope) -> bool:

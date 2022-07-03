@@ -95,7 +95,7 @@ class HttpClient:
     def info(self) -> ResponseData:
         return self.get('info').json()  # type: ignore
 
-    def post_identity(self, identity: schemas.Identity) -> ResponseData:
+    def post_identity(self, identity: schemas.IdentityEnvelope) -> ResponseData:
         response = self.post('identity', payload=identity.json())
         return response.json()  # type: ignore
 
