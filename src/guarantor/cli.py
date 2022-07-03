@@ -112,11 +112,11 @@ def post_identity(urls: list[str], wif: str, props: str) -> None:
 
 
 @cli.command()
-@opt("topic"  , "Topic/Chatroom"                   , default="lobby")
-@opt("message", "Your Message"                     , default="Hello, World!")
-@opt("profile", "Profile name"                     , default="default_profile")
-@opt("urls"   , "Connection Urls (comma separated)", default=["http://127.0.0.1:21021"])
-def chat(topic: str, message: str, profile: str, urls: list[str]):
+@opt("topic"  , "Topic/Chatroom", default="lobby")
+@opt("message", "Your Message"  , default="Hello, World!")
+# @opt("profile", "Profile name"                     , default="default_profile")
+@opt("urls", "Connection Urls (comma separated)", default=["http://127.0.0.1:21021"])
+def chat(topic: str, message: str, urls: list[str]):
     # pylint: disable=import-outside-toplevel
     from guarantor import schemas
 
@@ -128,9 +128,9 @@ def chat(topic: str, message: str, profile: str, urls: list[str]):
 
 @cli.command()
 @arg("topic")
-@opt("profile", "Profile name"                     , default="default_profile")
-@opt("urls"   , "Connection Urls (comma separated)", default=["http://127.0.0.1:21021"])
-def listen(topic: str, profile: str, urls: list[str]):
+# @opt("profile", "Profile name"                     , default="default_profile")
+@opt("urls", "Connection Urls (comma separated)", default=["http://127.0.0.1:21021"])
+def listen(topic: str, urls: list[str]):
     http_client = init_client(urls)
 
     async def _listener() -> None:

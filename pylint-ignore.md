@@ -24,7 +24,6 @@ The recommended approach to using `pylint-ignore` is:
 # Overview
 
  - [W0511: fixme (1x)](#w0511-fixme)
- - [W0613: unused-argument (2x)](#w0613-unused-argument)
 
 
 # W0511: fixme
@@ -43,38 +42,6 @@ The recommended approach to using `pylint-ignore` is:
 > 64:         # TODO (mb 2022-06-26): failover/load balancing
   65:         base_url = self.urls[0].rstrip("/")
   66:         path     = f"/{self.api_version}/" + "/".join(path_parts)
-```
-
-
-# W0613: unused-argument
-
-## File src/guarantor/cli.py - Line 105 - W0613 (unused-argument)
-
-- `message: Unused argument 'profile'`
-- `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2022-07-03T13:56:37`
-
-```
-  103: @opt("profile", "Profile name"                     , default="default_profile")
-  104: @opt("urls"   , "Connection Urls (comma separated)", default=["http://127.0.0.1:21021"])
-> 105: def chat(topic: str, message: str, profile: str, urls: list[str]):
-  106:     # pylint: disable=import-outside-toplevel
-  107:     from guarantor import schemas
-```
-
-
-## File src/guarantor/cli.py - Line 119 - W0613 (unused-argument)
-
-- `message: Unused argument 'profile'`
-- `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2022-07-03T13:56:37`
-
-```
-  117: @opt("profile", "Profile name"                     , default="default_profile")
-  118: @opt("urls"   , "Connection Urls (comma separated)", default=["http://127.0.0.1:21021"])
-> 119: def listen(topic: str, profile: str, urls: list[str]):
-  120:     http_client = init_client(urls)
-  121:
 ```
 
 
