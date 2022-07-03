@@ -370,8 +370,8 @@ mypy:
 
 
 ## Run pytest unit and integration tests
-.PHONY: test
-test:
+.PHONY: package_test
+package_test:
 	@rm -rf ".pytest_cache";
 	@rm -rf "src/__pycache__";
 	@rm -rf "test/__pycache__";
@@ -379,22 +379,7 @@ test:
 	@rm -f "reports/pytest*";
 	@mkdir -p "reports/";
 
-	# First we test the local source tree using the dev environment
-	ENV=$${ENV-dev} \
-		PYTHONPATH=src/:vendor/:$$PYTHONPATH \
-		PATH=$(DEV_ENV)/bin:$$PATH \
-		$(DEV_ENV_PY) -m pytest -v \
-		--doctest-modules \
-		--verbose \
-		--cov-report "html:reports/testcov/" \
-		--cov-report term \
-		--html=reports/pytest/index.html \
-		--junitxml reports/pytest.xml \
-		-k "$${PYTEST_FILTER-$${FLTR}}" \
-		$(shell cd src/ && ls -1 */__init__.py | awk '{ sub(/\/__init__.py/, "", $$1); print "--cov "$$1 }') \
-		test/ src/;
-
-	# Next we install the package and run the test suite against it.
+	# create and install the package, then run the test suite against it.
 
 	rm -rf build/test_wheel;
 	mkdir -p build/test_wheel;
@@ -446,7 +431,7 @@ fmt: fmt_isort fmt_sjfmt
 
 ## Shortcut for make fmt lint mypy devtest test
 .PHONY: check
-check: fmt lint mypy devtest test
+check: fmt lint mypy test
 
 
 ## Start subshell with environ variables set.
@@ -523,6 +508,11 @@ devtest:
 
 	@rm -rf "src/__pycache__";
 	@rm -rf "test/__pycache__";
+
+
+## alias for `make devtest`
+.PHONY: test
+test: devtest
 
 
 ## -- Build/Deploy --

@@ -12,6 +12,7 @@ Usage:
 
 """
 # pylint: disable=C, W, R
+# type: ignore
 
 
 import sys

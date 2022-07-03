@@ -20,26 +20,3 @@ The recommended approach to using `pylint-ignore` is:
 3. If a message is a false positive, add a comment of this form to your code:
    `# pylint:disable=<symbol> ; explain why this is a false positive`
 
-
-# Overview
-
- - [C0103: invalid-name (1x)](#c0103-invalid-name)
-
-
-# C0103: invalid-name
-
-## File src/guarantor/main.py - Line 30 - C0103 (invalid-name)
-
-- `message: Argument name "q" doesn't conform to snake_case naming style`
-- `author : Manuel Barkhau <mbarkhau@gmail.com>`
-- `date   : 2022-06-09T10:46:01`
-
-```
-  28: 
-  29: @app.get("/testint/{param}")
-> 30: async def testint(param: int, q: int | None = None):
-  31:     return {'message': param, 'q': q}
-  32:
-```
-
-

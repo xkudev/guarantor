@@ -34,6 +34,7 @@ def init_option(name: str, helptxt: str, default: OptionType) -> tuple[Option, s
     # type is derived via default  (prototype approach)
 
     assert name == name.lower()
+    assert not name.startswith("-")
     assert default is not None  # use arge instead
 
     env_name = "GUARANTOR_" + name.upper()
@@ -55,20 +56,28 @@ def init_option(name: str, helptxt: str, default: OptionType) -> tuple[Option, s
         raw_env_val: str | None = os.getenv(env_name)
         if opt_value is None:
             if raw_env_val is None:
-                return default
+                retval = default
             elif is_flag:
-                return raw_env_val.strip().lower() in ("1", "t", "true", "y", "yes")
+                retval = raw_env_val.strip().lower() in ("1", "t", "true", "y", "yes")
             elif is_sequence:
-                return _type(val.strip() for val in raw_env_val.split(","))
+                retval = _type(val.strip() for val in raw_env_val.split(","))
             else:
-                return _type(raw_env_val)
+                retval = _type(raw_env_val)
         else:
             if opt_value == default:
-                return opt_value
+                retval = opt_value
             if is_sequence:
-                return _type(val.strip() for val in opt_value.split(","))
+                retval = _type(val.strip() for val in opt_value.split(","))
             else:
-                return _type(opt_value)
+                retval = _type(opt_value)
+
+        if name == 'urls':
+            retval = [url.rstrip("/") for url in retval]
+            for url in retval:
+                assert url.startswith("https://") or url.startswith("http://")
+                assert url.count("/") == 2
+
+        return retval
 
     option = click.option(
         "--" + name.replace("_", "-"),
@@ -76,7 +85,7 @@ def init_option(name: str, helptxt: str, default: OptionType) -> tuple[Option, s
         type=_click_type,
         is_flag=is_flag,
         callback=_parse_option_value,
-        help=helptxt.ljust(20) + f"[evn:{env_name}]",
+        help=helptxt.ljust(20) + f"[env:{env_name}]",
     )
     return (option, env_name, _default)
 

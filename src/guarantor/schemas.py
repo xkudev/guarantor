@@ -55,6 +55,12 @@ def verify_identity_envelope(identity_envelope) -> bool:
     return matching_attress and valid_sig
 
 
+class ChatMessage(pydantic.BaseModel):
+    topic : str
+    iso_ts: str
+    text  : str
+
+
 # maybe maybe maybe
 #
 #
