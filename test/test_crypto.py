@@ -53,6 +53,36 @@ def test_pycoin():
             assert BTC.msg.verify(key, sig2.encode('ascii'), msg)
 
 
+def test_generate_wif():
+    wif = crypto.generate_wif()
+    crypto.validate_wif(wif)
+    address = crypto.get_wif_address(wif)
+    msg     = "test"
+    sig     = crypto.sign(msg, wif)
+    assert crypto.verify(address, sig, msg)
+
+
+def test_generate_wif_master_secret():
+    wif = crypto.generate_wif(master_secret_hex="DEADBEEF")
+    assert wif == "L4n1KoyT7zJjZCV6rDhHsCLGzZBWGAQW57MPd8wR38rsNjrSjNAt"
+    crypto.validate_wif(wif)
+    address = crypto.get_wif_address(wif)
+    msg     = "test"
+    sig     = crypto.sign(msg, wif)
+    assert crypto.verify(address, sig, msg)
+
+
+def test_generate_wif_master_secret_not_hex():
+    with pytest.raises(ValueError, match=r"h2b failed on nothex"):
+        wif = crypto.generate_wif(master_secret_hex="nothex")
+        assert wif == "L4n1KoyT7zJjZCV6rDhHsCLGzZBWGAQW57MPd8wR38rsNjrSjNAt"
+        crypto.validate_wif(wif)
+        address = crypto.get_wif_address(wif)
+        msg     = "test"
+        sig     = crypto.sign(msg, wif)
+        assert crypto.verify(address, sig, msg)
+
+
 def test_sign():
     for wif, right_addr in [
         (

@@ -1,12 +1,22 @@
+import os
 import typing as typ
 import hashlib
 
 import jcs
 from pycoin.symbols.btc import network as BTC
+from pycoin.encoding.hexbytes import h2b
 
 
-def generate_wif():
-    pass
+def generate_wif(master_secret_hex: str | None = None) -> str:
+    """Raises ValueError if given input is not hex."""
+    if master_secret_hex is None:
+        master_secret = os.urandom(256)
+    else:
+        master_secret = h2b(master_secret_hex)
+    key = BTC.keys.bip32_seed(master_secret)
+    wif = key.wif()
+    assert isinstance(wif, str)
+    return wif
 
 
 def validate_address(address: str):
