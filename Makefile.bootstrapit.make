@@ -489,6 +489,7 @@ ipy:
 ## Like `make test`, but with debug parameters
 .PHONY: devtest
 devtest:
+	@rm -rf "guarantor.sqlite3";
 	@rm -rf "src/__pycache__";
 	@rm -rf "test/__pycache__";
 
