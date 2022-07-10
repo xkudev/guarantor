@@ -135,3 +135,30 @@ def test_post_identity(ctx: Context, server: sp.Popen):
     assert identity_response.identity.address == '1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv'
     assert guarantor.schemas.verify_identity_envelope(identity_response.identity)
     assert identity_response.identity.document.props == {'foo': "bar"}
+    assert identity_response.path == '/v1/identity/1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv'
+
+
+@pytest.mark.skipif(IS_IN_CI_CONTEXT, reason="HTTP server doesn't want to start on CI")
+def test_post_identity_twice(ctx: Context, server: sp.Popen):
+
+    # first post works
+
+    res = ctx.cli(
+        "post-identity", "5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss", props='{"foo": "bar"}'
+    )
+
+    assert res.exit_code == 0
+
+    identity_response = guarantor.schemas.IdentityResponse(**json.loads(res.output))
+
+    assert identity_response.identity.address == '1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN'
+    assert guarantor.schemas.verify_identity_envelope(identity_response.identity)
+    assert identity_response.identity.document.props == {'foo': "bar"}
+    assert identity_response.path == '/v1/identity/1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN'
+    
+    # second post fails with 409 status code
+    with pytest.raises(Exception, match='.*409.*'):
+
+        ctx.cli(
+            "post-identity", "5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss", props='{"foo": "bar", "bam": "baz"}'
+        )
