@@ -142,7 +142,6 @@ def test_post_identity(ctx: Context, server: sp.Popen):
 def test_post_identity_twice(ctx: Context, server: sp.Popen):
 
     # first post works
-
     res = ctx.cli(
         "post-identity", "5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss", props='{"foo": "bar"}'
     )
