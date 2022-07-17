@@ -37,5 +37,5 @@ def test_basic(db_client: aofdb.Client):
     assert doc_v1 == db_doc_v1.raw_document
     assert doc_v2 == db_doc_v2.raw_document
 
-    built_doc = aofdb.build_document(db_doc_v2.head_id)
+    built_doc = db_client.get(db_doc_v2.head_id)
     assert built_doc == db_doc_v2.raw_document
