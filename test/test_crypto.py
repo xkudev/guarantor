@@ -17,7 +17,7 @@ HCT1esk/TWlF/o9UNzLDANqsPXntkMErf7erIrjH5IBOZP98cNcmWmnW0GpSAi3wbr6CwpUAN4ctNn1T
 
 
 def test_pycoin():
-    for wif, right_addr in [
+    for wif, expected_addr in [
         (
             'L4gXBvYrXHo59HLeyem94D9yLpRkURCHmCwQtPuWW9m6o1X8p8sp',
             '1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv',
@@ -28,20 +28,20 @@ def test_pycoin():
         ),
     ]:
         key = BTC.parse.wif(wif)
-        assert key.address() == right_addr
+        assert key.address() == expected_addr
 
-        vk2 = BTC.parse.address(right_addr)
-        assert vk2.address() == right_addr
+        vk2 = BTC.parse.address(expected_addr)
+        assert vk2.address() == expected_addr
 
         for i in range(1, 30, 10):
             msg = f"test message {'A' * i}"
             sig = BTC.msg.sign(key, msg, verbose=1)
-            assert right_addr in sig
+            assert expected_addr in sig
 
             # check parsing works
             parsed_msg, parsed_addr, parsed_sig = BTC.msg.parse_signed(sig)
             assert parsed_msg  == msg       , parsed_msg
-            assert parsed_addr == right_addr, parsed_addr
+            assert parsed_addr == expected_addr, parsed_addr
 
             sig2 = BTC.msg.sign(key, msg, verbose=0)
             assert sig2 in sig, (sig, sig2)
@@ -84,7 +84,7 @@ def test_generate_wif_master_secret_not_hex():
 
 
 def test_sign():
-    for wif, right_addr in [
+    for wif, expected_addr in [
         (
             'L4gXBvYrXHo59HLeyem94D9yLpRkURCHmCwQtPuWW9m6o1X8p8sp',
             '1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv',
@@ -95,7 +95,7 @@ def test_sign():
         ),
     ]:
         addr = crypto.get_wif_address(wif)
-        assert addr == right_addr
+        assert addr == expected_addr
         for i in range(1, 30, 10):
             msg = f"test message {'A' * i}"
             sig = crypto.sign(msg, wif)
