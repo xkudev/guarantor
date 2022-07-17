@@ -7,6 +7,11 @@ from pycoin.symbols.btc import network as BTC
 from pycoin.encoding.hexbytes import h2b
 
 
+class KeyPair(typ.NamedTuple):
+    wif : str
+    addr: str
+
+
 def generate_wif(master_secret_hex: str | None = None) -> str:
     """Raises ValueError if given input is not hex."""
     if master_secret_hex is None:
