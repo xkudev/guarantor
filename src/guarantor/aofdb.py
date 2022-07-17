@@ -129,10 +129,12 @@ def put_change(change: Change) -> ChangeHash:
         raise ValueError("Invalid change!")
 
 
-def iter_change(head_id: ChangeHash) -> typ.Iterator[Change]:
+def iter_changes(head_id: ChangeHash, early_exit: bool = False) -> typ.Iterator[Change]:
     change_id = head_id
     while change := get_change(change_id):
         yield change
+        if early_exit and change.op.opcode == OP_RESET:
+            return
         change_id = change.parent
 
 
@@ -153,9 +155,6 @@ def doc_patch(diff: Diff, old_doc: Document) -> Document:
 def doc_diff(old: Document, new: Document) -> Operation:
     diff = Operation(opcode=OP_RESET, data=new)
 
-    # TODO (mb 2022-07-17): Only replace if maybe_diff is
-    #       actually smaller.
-    #
     # try:
     #     dd_diff = list(dictdiffer.diff(old, new))
     #     dd_diff = json.loads(json.dumps(dd_diff))
@@ -170,14 +169,10 @@ def doc_diff(old: Document, new: Document) -> Operation:
     return diff
 
 
-def build_document(head_id) -> Document:
+def _build_document(changes: list[Change]) -> Document:
     full_diff: list[Operation] = []
-    for change in iter_change(head_id):
+    for change in changes:
         full_diff.append(change.op)
-        if change.op.opcode == OP_RESET:
-            # no need to go any further
-            break
-
     return doc_patch(reversed(full_diff), old_doc={})
 
 
@@ -186,7 +181,8 @@ class Client:
         self.dirpath = dirpath
 
     def get(self, change_id: ChangeHash) -> Document:
-        return build_document(change_id)
+        changes = list(iter_changes(change_id, early_exit=True))
+        return _build_document(changes)
 
     def post(
         self,
@@ -209,8 +205,3 @@ class Client:
     # def update(self, doc: Document, wif: WIF, old_doc: Document | None) -> Change:
     #     # user friendly
     #     key = BTC.parse.wif(wif)
-
-    #     pass
-
-    def _append(self, diff: Operation) -> None:
-        pass
