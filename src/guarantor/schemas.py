@@ -16,10 +16,10 @@ class BaseEnvelope(pydantic.BaseModel):
     # TODO prev_id   : str | None
     # TODO generation: int
 
-    document  : pydantic.BaseModel
+    document: pydantic.BaseModel
 
-    address   : str
-    signature : str | None
+    address  : str
+    signature: str | None
 
 
 class Identity(pydantic.BaseModel):

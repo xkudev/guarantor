@@ -98,26 +98,13 @@ def loads_change(change_data: bytes) -> Change:
 
 
 def get_signing_hash(change: Change):
-    signing_data = {
-        'parent': change.parent, 
-        'op': change.op._asdict(),
-        'schema_name': change.schema_name
-    }
+    signing_data = {'parent': change.parent, 'op': change.op._asdict(), 'schema_name': change.schema_name}
     return crypto.deterministic_json_hash(signing_data)
 
 
-def create_change(
-    parent: ChangeHash | None, 
-    schema_name: str,
-    op: Operation, 
-    wif: str
-) -> Change:
+def create_change(parent: ChangeHash | None, schema_name: str, op: Operation, wif: str) -> Change:
 
-    signing_data = {
-        'parent': parent, 
-        'op': op._asdict(), 
-        'schema_name': schema_name
-    }
+    signing_data = {'parent': parent, 'op': op._asdict(), 'schema_name': schema_name}
     signing_hash = crypto.deterministic_json_hash(signing_data)
     signature    = crypto.sign(signing_hash, wif)
     address      = crypto.get_wif_address(wif)
@@ -135,11 +122,7 @@ class VerificationError(Exception):
 
 
 def verify_change(change: Change):
-    return crypto.verify(
-        change.address, 
-        change.signature, 
-        get_signing_hash(change)
-    )
+    return crypto.verify(change.address, change.signature, get_signing_hash(change))
 
 
 def get_change_id(change: Change) -> ChangeHash:
@@ -252,11 +235,6 @@ class Client:
             new_doc_op = doc_diff(old=prev_doc.raw_document, new=doc)
 
         parent  = (prev_doc and prev_doc.head_id) or None
-        change  = create_change(
-            parent=parent, 
-            schema_name=schema_name,
-            op=new_doc_op, 
-            wif=wif
-        )
+        change  = create_change(parent=parent, schema_name=schema_name, op=new_doc_op, wif=wif)
         head_id = self._put_change(change)
         return DatabaseDocument(head_id, copy.deepcopy(doc))

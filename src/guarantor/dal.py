@@ -1,8 +1,7 @@
 from guarantor import schemas
 
 
-class DataAccessLayer():
-
+class DataAccessLayer:
     def __init__(self, model):
         pass
 
