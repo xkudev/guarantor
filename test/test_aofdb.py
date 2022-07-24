@@ -17,7 +17,7 @@ FIXTURE_KEY = crypto.KeyPair(
 
 @pytest.fixture()
 def db_client(tmpdir) -> typ.Iterator[aofdb.Client]:
-    yield aofdb.Client(pl.Path(tmpdir))
+    yield aofdb.Client(pl.Path(tmpdir), flag="c")
 
 
 def test_doc_diff():

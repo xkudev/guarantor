@@ -20,6 +20,7 @@ Goals (in order of priority):
 - Random access read performance
 - Search indexes
 """
+import dbm
 import copy
 import json
 import typing as typ
@@ -70,28 +71,37 @@ class Change(typ.NamedTuple):
     signature: str  # signature of {parent + op}
 
 
-# KV-DB: hash -> {change}
-_KVDB = {}  # hash -> change
+def dumps_change(change: Change) -> str:
+    return json.dumps(
+        {
+            'parent'   : change.parent,
+            'op'       : change.op._asdict(),
+            'address'  : change.address,
+            'signature': change.signature,
+        }
+    )
+
+
+def loads_change(change_data: str) -> Change:
+    change_dict = json.loads(change_data)
+    return Change(
+        parent=change_dict['parent'],
+        op=change_dict['op'],
+        address=change_dict['address'],
+        signature=change_dict['signature'],
+    )
 
 
 def get_signing_hash(change: Change):
-    return crypto.deterministic_json_hash(
-        {
-            'parent': change.parent,
-            'op'    : change.op._asdict(),
-        }
-    )
+    signing_data = {'parent': change.parent, 'op': change.op._asdict()}
+    return crypto.deterministic_json_hash(signing_data)
 
 
 def create_change(parent: ChangeHash | None, op: Operation, wif: str) -> Change:
-    signing_hash = crypto.deterministic_json_hash(
-        {
-            'parent': parent,
-            'op'    : op._asdict(),
-        }
-    )
-    signature = crypto.sign(signing_hash, wif)
-    address   = crypto.get_wif_address(wif)
+    signing_data = {'parent': parent, 'op': op._asdict()}
+    signing_hash = crypto.deterministic_json_hash(signing_data)
+    signature    = crypto.sign(signing_hash, wif)
+    address      = crypto.get_wif_address(wif)
     return Change(
         parent=parent,
         op=op,
@@ -112,32 +122,6 @@ def get_change_id(change: Change) -> ChangeHash:
     return crypto.deterministic_json_hash(change._asdict())
 
 
-def get_change(change_id: ChangeHash) -> Change:
-    change = _KVDB.get(change_id)
-    if verify_change(change):
-        return change
-    else:
-        raise VerificationError(change_id)
-
-
-def put_change(change: Change) -> ChangeHash:
-    change_id = get_change_id(change)
-    if verify_change(change):
-        _KVDB[change_id] = change
-        return change_id
-    else:
-        raise ValueError("Invalid change!")
-
-
-def iter_changes(head_id: ChangeHash, early_exit: bool = False) -> typ.Iterator[Change]:
-    change_id = head_id
-    while change := get_change(change_id):
-        yield change
-        if early_exit and change.op.opcode == OP_RESET:
-            return
-        change_id = change.parent
-
-
 def doc_patch(diff: Diff, old_doc: Document) -> Document:
     new_doc = copy.deepcopy(old_doc)
     for op in diff:
@@ -155,6 +139,7 @@ def doc_patch(diff: Diff, old_doc: Document) -> Document:
 def doc_diff(old: Document, new: Document) -> Operation:
     diff = Operation(opcode=OP_RESET, data=new)
 
+    # import json
     # try:
     #     dd_diff = list(dictdiffer.diff(old, new))
     #     dd_diff = json.loads(json.dumps(dd_diff))
@@ -177,12 +162,55 @@ def _build_document(changes: list[Change]) -> Document:
 
 
 class Client:
-    def __init__(self, dirpath: pl.Path, mode='r'):
-        self.dirpath = dirpath
+    def __init__(self, dht_cache_dir: pl.Path, flag: str = 'r'):
+        self.dht_cache_dir = dht_cache_dir
+        self.flag          = flag
+
+    def dbm_path(self, change_id: ChangeHash):
+        # NOTE (mb 2022-07-24): To keep file sizes managable, and to reduce
+        #   multithreading contention, we might shard based on change_id.
+        return self.dht_cache_dir / "db.dbm"
+
+    def _get_change(self, change_id: ChangeHash) -> typ.Optional[Change]:
+        path = self.dbm_path(change_id)
+        if not path.exists():
+            return None
+
+        with dbm.open(str(path), flag="r") as db:
+            change_data = db.get(change_id)
+            change      = loads_change(change_data)
+            if verify_change(change):
+                return change
+            else:
+                raise VerificationError(change_id)
+
+    def _iter_changes(self, head_id: ChangeHash, early_exit: bool = False) -> typ.Iterator[Change]:
+        change_id = head_id
+        while change := self._get_change(change_id):
+            yield change
+            if early_exit and change.op.opcode == OP_RESET:
+                return
+            change_id = change.parent
 
     def get(self, change_id: ChangeHash) -> Document:
-        changes = list(iter_changes(change_id, early_exit=True))
+        changes = list(self._iter_changes(change_id, early_exit=True))
         return _build_document(changes)
+
+    def _put_change(self, change: Change) -> ChangeHash:
+        if not verify_change(change):
+            raise ValueError("Invalid change!")
+
+        change_id = get_change_id(change)
+        path      = self.dbm_path(change_id)
+
+        if self.flag == 'r':
+            raise Exception(f"dbm open for {path} not possible with flag='r'")
+
+        change_data = dumps_change(change)
+        with dbm.open(str(path), flag=self.flag) as db:
+            db[change_id] = change_data
+
+        return change_id
 
     def post(
         self,
@@ -197,11 +225,5 @@ class Client:
 
         parent  = (prev_doc and prev_doc.head_id) or None
         change  = create_change(parent=parent, op=new_doc_op, wif=wif)
-        head_id = put_change(change)
+        head_id = self._put_change(change)
         return DatabaseDocument(head_id, copy.deepcopy(doc))
-
-    # def find(self, query: Query) -> typ.Iterator[]:
-
-    # def update(self, doc: Document, wif: WIF, old_doc: Document | None) -> Change:
-    #     # user friendly
-    #     key = BTC.parse.wif(wif)
