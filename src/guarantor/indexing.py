@@ -56,6 +56,13 @@ class IndexItem(typ.NamedTuple):
     model_hash: Hash
 
 
+class MatchItem(typ.NamedTuple):
+    stem: str
+    model_hash: Hash
+    field: str
+    datatype: str
+    
+
 class Index:
     def __init__(self):
         self._items         = sortedcontainers.SortedList()
@@ -74,10 +81,11 @@ class Index:
             self._items.update(self._pending_items)
             self._pending_items.clear()
 
-        idx = bisect.bisect_left(self._items, term)
+        # breakpoint()
+        idx = bisect.bisect_left(self._items, IndexItem(term, ""))
         while idx < len(self._items):
             item = self._items[idx]
-            if term in item.term:
+            if item.stem.startswith(term):
                 yield item
                 idx = idx + 1
             else:
@@ -87,21 +95,32 @@ class Index:
 _INDEXES = collections.defaultdict(Index)
 
 
+def _get_datatype(model_type: type):
+    return model_type.__module__ + "." + model_type.__name__
+
+
 def query_index(
-    datatype: str,
-    term    : str,
-    fields  : list[str] | None = None,
+    model_type: type,
+    term      : str,
+    fields    : list[str] | None = None,
 ) -> list[IndexItem]:
+    datatype = _get_datatype(model_type)
     for index_decl in INDEXE_DECLARATIONS:
         for field in index_decl.fields:
             index = _INDEXES[index_decl.datatype, field]
             for idx_item in index.find(term):
-                print(idx_item.model_hash, idx_item.match_term)
+                print("XXX: ", idx_item.model_hash, idx_item.stem)
+                yield MatchItem(
+                    stem=idx_item.stem, 
+                    model_hash=idx_item.model_hash,
+                    field=field,
+                    datatype=index_decl.datatype
+                )
 
 
 def update_indexes(model: pydantic.BaseModel) -> list[Hash]:
     model_hash: Hash = crypto.deterministic_json_hash(model.dict())
-    datatype = model.__module__ + "." + model.__class__.__name__
+    datatype = _get_datatype(model.__class__)
     for index_decl in INDEXE_DECLARATIONS:
         if index_decl.datatype == datatype:
             for field in index_decl.fields:
