@@ -19,6 +19,7 @@ def test_index_update():
     indexing.update_indexes(model_a)
     indexing.update_indexes(model_b)
 
-    res = indexing.query_index("01234abcdef")
-    print(res)
+
+    res = list(indexing.query_index(schemas.Identity, "01234abcdef"))
+    print("RES: ", res)
     assert False
