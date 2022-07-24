@@ -65,19 +65,21 @@ Diff = list[Operation]
 
 class Change(typ.NamedTuple):
     # NOTE (mb 2022-07-17): persisted
-    parent   : ChangeHash | None
-    op       : Operation
-    address  : str
-    signature: str  # signature of {parent + op}
+    parent     : ChangeHash | None
+    op         : Operation
+    schema_name: str
+    address    : str
+    signature  : str  # signature of {parent + op}
 
 
 def dumps_change(change: Change) -> bytes:
     change_json = json.dumps(
         {
-            'parent'   : change.parent,
-            'op'       : change.op._asdict(),
-            'address'  : change.address,
-            'signature': change.signature,
+            'parent'     : change.parent,
+            'op'         : change.op._asdict(),
+            'schema_name': change.schema_name,
+            'address'    : change.address,
+            'signature'  : change.signature,
         }
     )
     return change_json.encode("utf-8")
@@ -89,24 +91,40 @@ def loads_change(change_data: bytes) -> Change:
     return Change(
         parent=change_dict['parent'],
         op=Operation(opcode=op_dict['opcode'], data=op_dict['data']),
+        schema_name=change_dict['schema_name'],
         address=change_dict['address'],
         signature=change_dict['signature'],
     )
 
 
 def get_signing_hash(change: Change):
-    signing_data = {'parent': change.parent, 'op': change.op._asdict()}
+    signing_data = {
+        'parent': change.parent, 
+        'op': change.op._asdict(),
+        'schema_name': change.schema_name
+    }
     return crypto.deterministic_json_hash(signing_data)
 
 
-def create_change(parent: ChangeHash | None, op: Operation, wif: str) -> Change:
-    signing_data = {'parent': parent, 'op': op._asdict()}
+def create_change(
+    parent: ChangeHash | None, 
+    schema_name: str,
+    op: Operation, 
+    wif: str
+) -> Change:
+
+    signing_data = {
+        'parent': parent, 
+        'op': op._asdict(), 
+        'schema_name': schema_name
+    }
     signing_hash = crypto.deterministic_json_hash(signing_data)
     signature    = crypto.sign(signing_hash, wif)
     address      = crypto.get_wif_address(wif)
     return Change(
         parent=parent,
         op=op,
+        schema_name=schema_name,
         address=address,
         signature=signature,
     )
@@ -117,7 +135,11 @@ class VerificationError(Exception):
 
 
 def verify_change(change: Change):
-    return crypto.verify(change.address, change.signature, get_signing_hash(change))
+    return crypto.verify(
+        change.address, 
+        change.signature, 
+        get_signing_hash(change)
+    )
 
 
 def get_change_id(change: Change) -> ChangeHash:
@@ -219,9 +241,10 @@ class Client:
 
     def post(
         self,
-        doc     : Document,
-        wif     : str,
-        prev_doc: DatabaseDocument | None = None,
+        doc        : Document,
+        schema_name: str,
+        wif        : str,
+        prev_doc   : DatabaseDocument | None = None,
     ) -> ChangeHash:
         if prev_doc is None:
             new_doc_op = Operation(opcode=OP_RESET, data=doc)
@@ -229,6 +252,11 @@ class Client:
             new_doc_op = doc_diff(old=prev_doc.raw_document, new=doc)
 
         parent  = (prev_doc and prev_doc.head_id) or None
-        change  = create_change(parent=parent, op=new_doc_op, wif=wif)
+        change  = create_change(
+            parent=parent, 
+            schema_name=schema_name,
+            op=new_doc_op, 
+            wif=wif
+        )
         head_id = self._put_change(change)
         return DatabaseDocument(head_id, copy.deepcopy(doc))

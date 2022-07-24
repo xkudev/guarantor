@@ -31,8 +31,8 @@ def test_basic(db_client: aofdb.Client):
     doc_v1 = {'title': "Hello, World!"}
     doc_v2 = {'title': "Hallo, Welt!"}
 
-    db_doc_v1 = db_client.post(doc_v1, wif=FIXTURE_KEY.wif)
-    db_doc_v2 = db_client.post(doc_v2, wif=FIXTURE_KEY.wif, prev_doc=db_doc_v1)
+    db_doc_v1 = db_client.post(doc_v1, 'test', wif=FIXTURE_KEY.wif)
+    db_doc_v2 = db_client.post(doc_v2, 'test', wif=FIXTURE_KEY.wif, prev_doc=db_doc_v1)
 
     assert doc_v1 == db_doc_v1.raw_document
     assert doc_v2 == db_doc_v2.raw_document

@@ -12,11 +12,14 @@ from guarantor import crypto
 
 
 class BaseEnvelope(pydantic.BaseModel):
-    address  : str
-    head_id  : str
-    prev_id  : str | None
-    document : pydantic.BaseModel
-    signature: str | None
+    # TODO head_id   : str
+    # TODO prev_id   : str | None
+    # TODO generation: int
+
+    document  : pydantic.BaseModel
+
+    address   : str
+    signature : str | None
 
 
 class Identity(pydantic.BaseModel):
