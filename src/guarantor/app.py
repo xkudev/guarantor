@@ -15,13 +15,11 @@ import collections
 import fastapi
 import fastapi.responses as resp
 import websockets.exceptions
-from sqlalchemy.orm import Session
 from fastapi.staticfiles import StaticFiles
 
 import guarantor
 from guarantor import models
 from guarantor import schemas
-from guarantor import database
 from guarantor import http_utils
 
 # import enum
@@ -65,7 +63,7 @@ def _identity_response_from_db(db_identity: models.Identity) -> schemas.Identity
 
 
 @app.post("/v1/identity", response_model=schemas.IdentityResponse, status_code=201)
-async def post_identity(identity: schemas.IdentityEnvelope, db: Session = database.session):
+async def post_identity(identity: schemas.IdentityEnvelope):
 
     # need better way to detect failure, unique ignored -_-
     prev_db_identity = (
@@ -92,7 +90,7 @@ async def post_identity(identity: schemas.IdentityEnvelope, db: Session = databa
 
 
 @app.get("/v1/identity/{address}", response_model=schemas.IdentityResponse)
-async def get_identity(address: str, db: Session = database.session):
+async def get_identity(address: str):
 
     db_identity = db.query(models.Identity).filter(models.Identity.address == address).first()
 
@@ -127,7 +125,7 @@ async def get_identity(address: str, db: Session = database.session):
 
 
 # @app.post("/v1/message/{address}", response_model=schemas.AckResponse)
-# async def message(pubkey: str, db: Session = database.session):
+# async def message(pubkey: str):
 #     pass
 
 

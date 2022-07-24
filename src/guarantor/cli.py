@@ -56,20 +56,21 @@ def cli() -> None:
 
 @cli.command()
 @opt("bind"     , "IP:port to serve on"     , default="0.0.0.0:21021")
-@opt("db_url"   , "Database Url"            , default="sqlite:///./guarantor.sqlite3")
+@opt("db_path"  , "Database Path"           , default=cli_util.DEFAULT_DB_PATH)
 @opt("no_reload", "Disable realod for serve", default=False)
-def serve(bind: str, db_url: str, no_reload: bool) -> None:
+def serve(bind: str, db_path: str, no_reload: bool) -> None:
     """Serve API app with uvicorn"""
     # pylint: disable=import-outside-toplevel
     import uvicorn
 
-    from guarantor import database
+    # from guarantor import database
 
     if "://" in bind:
         proto, bind = bind.split("://")
         assert proto == "http"
     host, port = bind.strip("/").split(":")
-    database.DB_URL = db_url
+    # database.DB_URL = db_path
+    # raise Exception("TODO: change_db.DB_URL = db_path")
     uvicorn.run("guarantor.app:app", host=host, port=int(port), reload=not no_reload)
 
 

@@ -11,7 +11,15 @@ import pydantic
 from guarantor import crypto
 
 
-class BaseEnvelope(pydantic.BaseModel):
+
+def get_model_type(model_or_type: BaseModel | type) -> str:
+    if isinstance(model_or_type, BaseModel):
+        model_type = model_or_type.__class__
+    else:
+        model_type = model_or_type
+
+    return model_type.__module__ + ":" + model_type.__name__
+
     # TODO head_id   : str
     # TODO prev_id   : str | None
     # TODO generation: int

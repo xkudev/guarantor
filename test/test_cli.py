@@ -16,9 +16,9 @@ import guarantor.cli
 import guarantor.schemas
 
 TEST_ENV_DEFAULTS = {
-    'GUARANTOR_URLS'  : "http://localhost:8021",
-    'GUARANTOR_BIND'  : "0.0.0.0:8021",
-    'GUARANTOR_DB_URL': "sqlite:///./guarantor.sqlite3",
+    'GUARANTOR_URLS'   : "http://localhost:8021",
+    'GUARANTOR_BIND'   : "0.0.0.0:8021",
+    'GUARANTOR_DB_PATH': "/tmp/guarantor.aofdb",
 }
 
 
