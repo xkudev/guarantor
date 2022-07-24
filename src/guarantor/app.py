@@ -57,7 +57,7 @@ async def info():
 
 
 def _identity_response_from_db(db_identity: models.Identity) -> schemas.IdentityResponse:
-    identity = schemas.Identity(address=db_identity.address, info=json.loads(db_identity.info))
+    identity = schemas.Identity(address=db_identity.address, props=json.loads(db_identity.info))
     return schemas.IdentityResponse(
         path=f"/v1/identity/{db_identity.address}",
         identity=identity,
