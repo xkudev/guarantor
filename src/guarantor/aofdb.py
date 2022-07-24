@@ -71,8 +71,8 @@ class Change(typ.NamedTuple):
     signature: str  # signature of {parent + op}
 
 
-def dumps_change(change: Change) -> str:
-    return json.dumps(
+def dumps_change(change: Change) -> bytes:
+    change_json = json.dumps(
         {
             'parent'   : change.parent,
             'op'       : change.op._asdict(),
@@ -80,13 +80,15 @@ def dumps_change(change: Change) -> str:
             'signature': change.signature,
         }
     )
+    return change_json.encode("utf-8")
 
 
-def loads_change(change_data: str) -> Change:
-    change_dict = json.loads(change_data)
+def loads_change(change_data: bytes) -> Change:
+    change_dict = json.loads(change_data.decode("utf-8"))
+    op_dict     = change_dict['op']
     return Change(
         parent=change_dict['parent'],
-        op=change_dict['op'],
+        op=Operation(opcode=op_dict['opcode'], data=op_dict['data']),
         address=change_dict['address'],
         signature=change_dict['signature'],
     )
@@ -173,16 +175,20 @@ class Client:
 
     def _get_change(self, change_id: ChangeHash) -> typ.Optional[Change]:
         path = self.dbm_path(change_id)
-        if not path.exists():
-            return None
 
-        with dbm.open(str(path), flag="r") as db:
-            change_data = db.get(change_id)
-            change      = loads_change(change_data)
-            if verify_change(change):
-                return change
+        try:
+            with dbm.open(str(path), flag="r") as db:
+                change_data = db.get(change_id)
+                change      = loads_change(change_data)
+                if verify_change(change):
+                    return change
+                else:
+                    raise VerificationError(change_id)
+        except dbm.error as err:
+            if "doesn't exist" in str(err):
+                return None
             else:
-                raise VerificationError(change_id)
+                raise
 
     def _iter_changes(self, head_id: ChangeHash, early_exit: bool = False) -> typ.Iterator[Change]:
         change_id = head_id
@@ -202,7 +208,6 @@ class Client:
 
         change_id = get_change_id(change)
         path      = self.dbm_path(change_id)
-
         if self.flag == 'r':
             raise Exception(f"dbm open for {path} not possible with flag='r'")
 

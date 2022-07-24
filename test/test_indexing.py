@@ -24,11 +24,8 @@ def test_index_update():
     results = list(indexing.query_index(schemas.Identity, search_term="bob"))
     assert len(results) == 2
     res0 = results[0]
-    assert res0.model_hash == bob_hash
-    assert res0.field      == "props.email"
-    assert res0.stem       == "bob@mail.com"
-
     res1 = results[1]
-    assert res1.model_hash == bob_hash
-    assert res1.field      == "props.name"
-    assert res1.stem       == "bob"
+
+    assert {res0.model_hash, res1.model_hash} == {bob_hash}
+    assert {res0.field, res1.field}      == {"props.name", "props.email"}
+    assert {res0.stem, res1.stem}        == {"bob", "bob@mail.com"}
