@@ -10,8 +10,6 @@ import collections
 import pydantic
 import sortedcontainers
 
-from guarantor import crypto
-
 
 class IndexDeclaration(typ.NamedTuple):
     datatype: str
@@ -55,15 +53,15 @@ def _get_field_val(model, field: str) -> str:
 
 
 class IndexItem(typ.NamedTuple):
-    stem      : str
-    model_hash: Hash
+    stem    : str
+    model_id: Hash
 
 
 class MatchItem(typ.NamedTuple):
-    stem      : str
-    model_hash: Hash
-    datatype  : str
-    field     : str
+    stem    : str
+    model_id: Hash
+    datatype: str
+    field   : str
 
 
 class Index:
@@ -71,12 +69,12 @@ class Index:
         self._items         = sortedcontainers.SortedList()
         self._pending_items = []
 
-    def add(self, field_val: str, model_hash: str) -> None:
+    def add(self, field_val: str, model_id: str) -> None:
         for term in _iter_terms(field_val):
             if term is None:
                 continue
 
-            item = IndexItem(term, model_hash)
+            item = IndexItem(term, model_id)
             self._pending_items.append(item)
 
     def find(self, search_term: str) -> typ.Iterator[IndexItem]:
@@ -106,7 +104,7 @@ def query_index(
     model_type : type,
     search_term: str,
     fields     : list[str] | None = None,
-) -> list[IndexItem]:
+) -> typ.Iterator[MatchItem]:
     datatype = _get_datatype(model_type)
     for index_decl in INDEX_DECLARATIONS:
         if index_decl.datatype == datatype:
@@ -119,18 +117,17 @@ def query_index(
                 for idx_item in index.find(search_term):
                     yield MatchItem(
                         stem=idx_item.stem,
-                        model_hash=idx_item.model_hash,
+                        model_id=idx_item.model_id,
                         datatype=index_decl.datatype,
                         field=field,
                     )
 
 
-def update_indexes(model: pydantic.BaseModel) -> list[Hash]:
-    model_hash: Hash = crypto.deterministic_json_hash(model.dict())
+def update_indexes(model_id: str, model: pydantic.BaseModel) -> list[Hash]:
     datatype = _get_datatype(model.__class__)
     for index_decl in INDEX_DECLARATIONS:
         if index_decl.datatype == datatype:
             for field in index_decl.fields:
                 if field_val := _get_field_val(model, field):
                     index = _INDEXES[datatype, field]
-                    index.add(field_val, model_hash)
+                    index.add(field_val, model_id)
