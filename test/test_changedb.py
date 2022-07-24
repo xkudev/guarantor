@@ -6,8 +6,9 @@ import pathlib as pl
 import pytest
 from pycoin.symbols.btc import network as BTC
 
-from guarantor import changedb
 from guarantor import crypto
+from guarantor import schemas
+from guarantor import changedb
 
 FIXTURE_KEY = crypto.KeyPair(
     wif="L4gXBvYrXHo59HLeyem94D9yLpRkURCHmCwQtPuWW9m6o1X8p8sp",
@@ -28,14 +29,14 @@ def test_doc_diff():
 
 
 def test_basic(db_client: changedb.Client):
-    doc_v1 = {'title': "Hello, World!"}
-    doc_v2 = {'title': "Hallo, Welt!"}
+    doc_v1 = schemas.GenericDocument(props={'title': "Hello, World!"})
+    doc_v2 = schemas.GenericDocument(props={'title': "Hallo, Welt!"})
 
-    db_doc_v1 = db_client.post(doc_v1, 'test', wif=FIXTURE_KEY.wif)
-    db_doc_v2 = db_client.post(doc_v2, 'test', wif=FIXTURE_KEY.wif, prev_doc=db_doc_v1)
+    db_ref_v1 = db_client.post(doc_v1, wif=FIXTURE_KEY.wif)
+    db_ref_v2 = db_client.post(doc_v2, wif=FIXTURE_KEY.wif, prev_ref=db_ref_v1)
 
-    assert doc_v1 == db_doc_v1.raw_document
-    assert doc_v2 == db_doc_v2.raw_document
+    assert doc_v1 == db_ref_v1.model
+    assert doc_v2 == db_ref_v2.model
 
-    built_doc = db_client.get(db_doc_v2.head_id)
-    assert built_doc == db_doc_v2.raw_document
+    out_model = db_client.get(db_ref_v2.head_id)
+    assert out_model == db_ref_v2.model

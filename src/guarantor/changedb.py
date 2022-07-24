@@ -30,20 +30,17 @@ import pathlib as pl
 import dictdiffer
 
 from guarantor import crypto
+from guarantor import schemas
 
 logger = logging.getLogger(__name__)
 
 WIF = typ.Any
 
-Document = dict
 
-ChangeHash = str
-
-
-class DatabaseDocument(typ.NamedTuple):
+class DatabaseReference(typ.NamedTuple):
     # ephemeral/never persisted
-    head_id     : ChangeHash
-    raw_document: Document
+    head_id: schemas.ModelId
+    model  : schemas.BaseModel
 
 
 Path = str
@@ -55,31 +52,30 @@ OP_SET       = "set"
 OP_DEL       = "del"
 
 
-class Operation(typ.NamedTuple):
-    opcode: str
-    data  : typ.Any
-
-
-Diff = list[Operation]
-
-
 class Change(typ.NamedTuple):
     # NOTE (mb 2022-07-17): persisted
-    parent     : ChangeHash | None
-    op         : Operation
-    schema_name: str
-    address    : str
-    signature  : str  # signature of {parent + op}
+    parent    : schemas.ModelId | None
+    opcode    : str
+    opdata    : dict[str, typ.Any]
+    model_type: str
+    address   : str
+    signature : str  # signature of {parent + op}
+
+
+class Operation(typ.NamedTuple):
+    opcode: str
+    opdata: typ.Any
 
 
 def dumps_change(change: Change) -> bytes:
     change_json = json.dumps(
         {
-            'parent'     : change.parent,
-            'op'         : change.op._asdict(),
-            'schema_name': change.schema_name,
-            'address'    : change.address,
-            'signature'  : change.signature,
+            'parent'    : change.parent,
+            'opcode'    : change.opcode,
+            'opdata'    : change.opdata,
+            'model_type': change.model_type,
+            'address'   : change.address,
+            'signature' : change.signature,
         }
     )
     return change_json.encode("utf-8")
@@ -87,31 +83,41 @@ def dumps_change(change: Change) -> bytes:
 
 def loads_change(change_data: bytes) -> Change:
     change_dict = json.loads(change_data.decode("utf-8"))
-    op_dict     = change_dict['op']
     return Change(
         parent=change_dict['parent'],
-        op=Operation(opcode=op_dict['opcode'], data=op_dict['data']),
-        schema_name=change_dict['schema_name'],
+        opcode=change_dict['opcode'],
+        opdata=change_dict['opdata'],
+        model_type=change_dict['model_type'],
         address=change_dict['address'],
         signature=change_dict['signature'],
     )
 
 
 def get_signing_hash(change: Change):
-    signing_data = {'parent': change.parent, 'op': change.op._asdict(), 'schema_name': change.schema_name}
+    signing_data = {
+        'parent'    : change.parent,
+        'opcode'    : change.opcode,
+        'opdata'    : change.opdata,
+        'model_type': change.model_type,
+    }
     return crypto.deterministic_json_hash(signing_data)
 
 
-def create_change(parent: ChangeHash | None, schema_name: str, op: Operation, wif: str) -> Change:
-
-    signing_data = {'parent': parent, 'op': op._asdict(), 'schema_name': schema_name}
+def create_change(parent: schemas.ModelId | None, model_type: str, op: Operation, wif: str) -> Change:
+    signing_data = {
+        'parent'    : parent,
+        'opcode'    : op.opcode,
+        'opdata'    : op.opdata,
+        'model_type': model_type,
+    }
     signing_hash = crypto.deterministic_json_hash(signing_data)
     signature    = crypto.sign(signing_hash, wif)
     address      = crypto.get_wif_address(wif)
     return Change(
         parent=parent,
-        op=op,
-        schema_name=schema_name,
+        opcode=op.opcode,
+        opdata=op.opdata,
+        model_type=model_type,
         address=address,
         signature=signature,
     )
@@ -125,17 +131,17 @@ def verify_change(change: Change):
     return crypto.verify(change.address, change.signature, get_signing_hash(change))
 
 
-def get_change_id(change: Change) -> ChangeHash:
+def get_change_id(change: Change) -> schemas.ModelId:
     return crypto.deterministic_json_hash(change._asdict())
 
 
-def doc_patch(diff: Diff, old_doc: Document) -> Document:
+def doc_patch(diff: list[Operation], old_doc: dict) -> dict:
     new_doc = copy.deepcopy(old_doc)
     for op in diff:
         if op.opcode == OP_RESET:
-            new_doc = op.data
+            new_doc = op.opdata
         elif op.opcode == OP_DICT_DIFF:
-            new_doc = dictdiffer.patch(op.data, new_doc)
+            new_doc = dictdiffer.patch(op.opdata, new_doc)
         else:
             errmsg = f"doc_patch not implemended for opcode={op.opcode}"
             raise NotImplementedError(errmsg)
@@ -143,16 +149,22 @@ def doc_patch(diff: Diff, old_doc: Document) -> Document:
     return new_doc
 
 
-def doc_diff(old: Document, new: Document) -> Operation:
-    diff = Operation(opcode=OP_RESET, data=new)
+def model_patch(op: Operation, old_model: schemas.BaseModel) -> schemas.BaseModel:
+    new_doc     = doc_patch([op], old_model.dict())
+    model_clazz = old_model.__class__
+    return model_clazz(**new_doc)
+
+
+def doc_diff(old: dict, new: dict) -> Operation:
+    diff = Operation(opcode=OP_RESET, opdata=new)
 
     # import json
     # try:
     #     dd_diff = list(dictdiffer.diff(old, new))
     #     dd_diff = json.loads(json.dumps(dd_diff))
-    #     maybe_diff = Operation(opcode=OP_DICT_DIFF, data=dd_diff)
-    #     if doc_patch(maybe_diff, old) == new:
-    #         diff = maybe_diff
+    #     maybe_op = Operation(opcode=OP_DICT_DIFF, data=dd_diff)
+    #     if doc_patch(maybe_op, old) == new:
+    #         diff = maybe_op
     #     else:
     #         logger.warning("dictdiffer failed")
     # except ValueError:
@@ -161,24 +173,36 @@ def doc_diff(old: Document, new: Document) -> Operation:
     return diff
 
 
-def _build_document(changes: list[Change]) -> Document:
+def model_diff(old: schemas.BaseModel, new: schemas.BaseModel) -> Operation:
+    return doc_diff(old.dict(), new.dict())
+
+
+def _build_model(changes: list[Change]) -> schemas.BaseModel:
+    model_types = {change.model_type for change in changes}
+    if len(model_types) != 1:
+        raise ValueError(f"integrity error: ambiguous types {model_types}")
+
     full_diff: list[Operation] = []
     for change in changes:
-        full_diff.append(change.op)
-    return doc_patch(reversed(full_diff), old_doc={})
+        full_diff.append(Operation(change.opcode, change.opdata))
+
+    full_doc = doc_patch(reversed(full_diff), old_doc={})
+
+    model_type = next(iter(model_types))
+    return schemas.load_model_type(model_type)(**full_doc)
 
 
 class Client:
-    def __init__(self, dht_cache_dir: pl.Path, flag: str = 'r'):
-        self.dht_cache_dir = dht_cache_dir
-        self.flag          = flag
+    def __init__(self, db_dir: pl.Path, flag: str = 'r'):
+        self.db_dir = db_dir
+        self.flag   = flag
 
-    def dbm_path(self, change_id: ChangeHash):
+    def dbm_path(self, change_id: schemas.ModelId):
         # NOTE (mb 2022-07-24): To keep file sizes managable, and to reduce
         #   multithreading contention, we might shard based on change_id.
-        return self.dht_cache_dir / "db.dbm"
+        return self.db_dir / "db.dbm"
 
-    def _get_change(self, change_id: ChangeHash) -> typ.Optional[Change]:
+    def _get_change(self, change_id: schemas.ModelId) -> typ.Optional[Change]:
         path = self.dbm_path(change_id)
 
         try:
@@ -195,19 +219,19 @@ class Client:
             else:
                 raise
 
-    def _iter_changes(self, head_id: ChangeHash, early_exit: bool = False) -> typ.Iterator[Change]:
+    def _iter_changes(self, head_id: schemas.ModelId, early_exit: bool = False) -> typ.Iterator[Change]:
         change_id = head_id
         while change := self._get_change(change_id):
             yield change
-            if early_exit and change.op.opcode == OP_RESET:
+            if early_exit and change.opcode == OP_RESET:
                 return
             change_id = change.parent
 
-    def get(self, change_id: ChangeHash) -> Document:
+    def get(self, change_id: schemas.ModelId) -> schemas.BaseModel:
         changes = list(self._iter_changes(change_id, early_exit=True))
-        return _build_document(changes)
+        return _build_model(changes)
 
-    def _put_change(self, change: Change) -> ChangeHash:
+    def _put_change(self, change: Change) -> schemas.ModelId:
         if not verify_change(change):
             raise ValueError("Invalid change!")
 
@@ -224,17 +248,18 @@ class Client:
 
     def post(
         self,
-        doc        : Document,
-        schema_name: str,
-        wif        : str,
-        prev_doc   : DatabaseDocument | None = None,
-    ) -> ChangeHash:
-        if prev_doc is None:
-            new_doc_op = Operation(opcode=OP_RESET, data=doc)
-        else:
-            new_doc_op = doc_diff(old=prev_doc.raw_document, new=doc)
+        model   : schemas.BaseModel,
+        wif     : str,
+        prev_ref: DatabaseReference | None = None,
+    ) -> schemas.ModelId:
+        datatype = schemas.get_datatype(model)
 
-        parent  = (prev_doc and prev_doc.head_id) or None
-        change  = create_change(parent=parent, schema_name=schema_name, op=new_doc_op, wif=wif)
+        if prev_ref is None:
+            new_op = Operation(OP_RESET, model.dict())
+        else:
+            new_op = model_diff(old=prev_ref.model, new=model)
+
+        parent  = (prev_ref and prev_ref.head_id) or None
+        change  = create_change(parent=parent, model_type=datatype, op=new_op, wif=wif)
         head_id = self._put_change(change)
-        return DatabaseDocument(head_id, copy.deepcopy(doc))
+        return DatabaseReference(head_id, model)

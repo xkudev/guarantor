@@ -24,7 +24,7 @@ def test_index_update():
     indexing.update_indexes(model_a_id, model_a)
     indexing.update_indexes(model_b_id, model_b)
 
-    results = list(indexing.query_index(schemas.Identity, search_term="bob"))
+    results = list(indexing.query_index("guarantor.schemas:Identity", search_term="bob"))
     assert len(results) == 2
     res0 = results[0]
     res1 = results[1]

@@ -7,8 +7,9 @@ import bisect
 import typing as typ
 import collections
 
-import pydantic
 import sortedcontainers
+
+from guarantor import schemas
 
 
 class IndexDeclaration(typ.NamedTuple):
@@ -101,11 +102,10 @@ def _get_datatype(model_type: type):
 
 
 def query_index(
-    model_type : type,
+    datatype   : str,
     search_term: str,
     fields     : list[str] | None = None,
 ) -> typ.Iterator[MatchItem]:
-    datatype = _get_datatype(model_type)
     for index_decl in INDEX_DECLARATIONS:
         if index_decl.datatype == datatype:
             _fields = set(index_decl.fields)
@@ -123,8 +123,8 @@ def query_index(
                     )
 
 
-def update_indexes(model_id: str, model: pydantic.BaseModel) -> list[Hash]:
-    datatype = _get_datatype(model.__class__)
+def update_indexes(model_id: str, model: schemas.BaseModel) -> list[Hash]:
+    datatype = schemas.get_datatype(model)
     for index_decl in INDEX_DECLARATIONS:
         if index_decl.datatype == datatype:
             for field in index_decl.fields:

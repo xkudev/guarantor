@@ -3,16 +3,19 @@
 #
 # Copyright (c) 2022 xkudev (xkudev@pm.me) - MIT License
 # SPDX-License-Identifier: MIT
-# import enum
 import typing as typ
+import importlib
 
 import pydantic
 
 from guarantor import crypto
 
+ModelId = str
+
+BaseModel = pydantic.BaseModel
 
 
-def get_model_type(model_or_type: BaseModel | type) -> str:
+def get_datatype(model_or_type: BaseModel | type) -> str:
     if isinstance(model_or_type, BaseModel):
         model_type = model_or_type.__class__
     else:
@@ -20,17 +23,34 @@ def get_model_type(model_or_type: BaseModel | type) -> str:
 
     return model_type.__module__ + ":" + model_type.__name__
 
+
+_model_types: dict[str, type] = {}
+
+
+def load_model_type(datatype: str) -> type:
+    if datatype not in _model_types:
+        module_name, class_name = datatype.split(":", 1)
+        module = importlib.import_module(module_name)
+        _model_types[datatype] = getattr(module, class_name)
+    return _model_types[datatype]
+
+
+class BaseEnvelope(BaseModel):
     # TODO head_id   : str
     # TODO prev_id   : str | None
     # TODO generation: int
 
-    document: pydantic.BaseModel
+    document: BaseModel
 
     address  : str
     signature: str | None
 
 
-class Identity(pydantic.BaseModel):
+class GenericDocument(BaseModel):
+    props: dict[str, typ.Any]
+
+
+class Identity(BaseModel):
     address: str
     props  : dict[str, typ.Any]
 
@@ -39,17 +59,22 @@ class IdentityEnvelope(BaseEnvelope):
     document: Identity
 
 
-class IdentityResponse(pydantic.BaseModel):
+class IdentityResponse(BaseModel):
     path    : str
     identity: IdentityEnvelope
 
 
 def verify_base_envelope(base_envelope: BaseEnvelope) -> bool:
-    if not base_envelope.signature:
+    if base_envelope.signature is None:
         return False
-    obj       = base_envelope.document.dict()
-    hexdigest = crypto.deterministic_json_hash(obj)
-    return crypto.verify(address=base_envelope.address, signature=base_envelope.signature, message=hexdigest)
+    else:
+        obj       = base_envelope.document.dict()
+        hexdigest = crypto.deterministic_json_hash(obj)
+        return crypto.verify(
+            address=base_envelope.address,
+            signature=base_envelope.signature,
+            message=hexdigest,
+        )
 
 
 def sign_envelope(base_envelope: BaseEnvelope, wif: str) -> BaseEnvelope:
@@ -68,7 +93,7 @@ def verify_identity_envelope(identity_envelope) -> bool:
     return matching_attress and valid_sig
 
 
-class ChatMessage(pydantic.BaseModel):
+class ChatMessage(BaseModel):
     topic : str
     iso_ts: str
     text  : str
@@ -78,32 +103,25 @@ class ChatMessage(pydantic.BaseModel):
 #
 #
 #
-# class DocumentType(str, enum.Enum):
-#     EVIDENCE = "evidence"
 #
 #
-# class GenericDocument(pydantic.BaseModel):
+# class PolicyOffer(BaseModel):
 #     pass
 #
 #
-# class PolicyOffer(pydantic.BaseModel):
+# class PolicyContract(BaseModel):
 #     pass
 #
 #
-# class PolicyContract(pydantic.BaseModel):
-#     pass
+# ROLE_PLAINTIFF = "plaintiff"
+# ROLE_DEFENDANT = "defendant"
+# ROLE_JUDGE     = "judge"
 #
 #
-# class ClaimRole(str, enum.Enum):
-#     PLAINTIFF = "plaintiff"
-#     DEFENDANT = "defendant"
-#     JUDGE     = "judge"
-#
-#
-# class ClaimAssociation(pydantic.BaseModel):
+# class ClaimAssociation(BaseModel):
 #     identity: Identity
-#     role    : ClaimRole
+#     role    : str
 #
 #
-# class PolicyClaim(pydantic.BaseModel):
+# class PolicyClaim(BaseModel):
 #     pass

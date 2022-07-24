@@ -122,8 +122,9 @@ def chat(topic: str, message: str, urls: list[str]):
     from guarantor import schemas
 
     http_client = init_client(urls)
-    iso_ts      = dt.datetime.utcnow().isoformat()
-    result      = http_client.chat(msg=schemas.ChatMessage(topic=topic, iso_ts=iso_ts, text=message))
+
+    iso_ts = dt.datetime.utcnow().isoformat()
+    result = http_client.chat(msg=schemas.ChatMessage(topic=topic, iso_ts=iso_ts, text=message))
     print(result)
 
 
