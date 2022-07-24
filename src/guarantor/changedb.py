@@ -31,7 +31,7 @@ import dictdiffer
 
 from guarantor import crypto
 
-logger = logging.getLogger("guarantor.aofdb")
+logger = logging.getLogger(__name__)
 
 WIF = typ.Any
 

@@ -6,7 +6,7 @@ import pathlib as pl
 import pytest
 from pycoin.symbols.btc import network as BTC
 
-from guarantor import aofdb
+from guarantor import changedb
 from guarantor import crypto
 
 FIXTURE_KEY = crypto.KeyPair(
@@ -16,18 +16,18 @@ FIXTURE_KEY = crypto.KeyPair(
 
 
 @pytest.fixture()
-def db_client(tmpdir) -> typ.Iterator[aofdb.Client]:
-    yield aofdb.Client(pl.Path(tmpdir), flag="c")
+def db_client(tmpdir) -> typ.Iterator[changedb.Client]:
+    yield changedb.Client(pl.Path(tmpdir), flag="c")
 
 
 def test_doc_diff():
     doc_v1  = {'title': "Hello, World!"}
     doc_v2  = {'title': "Hallo, Welt!"}
-    diff_op = aofdb.doc_diff(doc_v1, doc_v2)
-    assert aofdb.doc_patch([diff_op], doc_v1) == doc_v2
+    diff_op = changedb.doc_diff(doc_v1, doc_v2)
+    assert changedb.doc_patch([diff_op], doc_v1) == doc_v2
 
 
-def test_basic(db_client: aofdb.Client):
+def test_basic(db_client: changedb.Client):
     doc_v1 = {'title': "Hello, World!"}
     doc_v2 = {'title': "Hallo, Welt!"}
 
