@@ -15,17 +15,17 @@ import collections
 import fastapi
 import fastapi.responses as resp
 import websockets.exceptions
-from sqlalchemy.orm import Session
 from fastapi.staticfiles import StaticFiles
 
 import guarantor
-from guarantor import models
 from guarantor import schemas
-from guarantor import database
 from guarantor import http_utils
+from guarantor.dal import DataAccessLayer
 
 # import enum
 # import pydantic
+
+dal_session = fastapi.Depends(DataAccessLayer)
 
 app = fastapi.FastAPI()
 
@@ -33,6 +33,7 @@ app = fastapi.FastAPI()
 logger = logging.getLogger("guarantor.app")
 
 static_dir = pl.Path(__file__).parent / "static"
+
 
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
@@ -56,27 +57,16 @@ async def info():
     }
 
 
-def _identity_response_from_db(db_identity: models.Identity) -> schemas.IdentityResponse:
-    identity = schemas.Identity(address=db_identity.address, props=json.loads(db_identity.info))
-    return schemas.IdentityResponse(
-        path=f"/v1/identity/{db_identity.address}",
-        identity=identity,
-    )
-
-
 @app.post("/v1/identity", response_model=schemas.IdentityResponse, status_code=201)
-async def post_identity(identity: schemas.IdentityEnvelope, db: Session = database.session):
-
+async def post_identity(identity: schemas.IdentityEnvelope):
     # need better way to detect failure, unique ignored -_-
-    prev_db_identity = (
-        db.query(models.Identity).filter(models.Identity.address == identity.document.address).first()
-    )
+    prev_db_identity = dal.find_one(schemas.Identity, address=address)
     if prev_db_identity:
         raise fastapi.HTTPException(
             status_code=409, detail=f"Identity {identity.document.address} already exists!"
         )
 
-    db_identity = models.Identity(
+    db_identity = schemas.Identity(
         address=identity.document.address,
         props=json.dumps(identity.document.props),
     )
@@ -92,11 +82,12 @@ async def post_identity(identity: schemas.IdentityEnvelope, db: Session = databa
 
 
 @app.get("/v1/identity/{address}", response_model=schemas.IdentityResponse)
-async def get_identity(address: str, db: Session = database.session):
-
-    db_identity = db.query(models.Identity).filter(models.Identity.address == address).first()
-
-    return _identity_response_from_db(db_identity)
+async def get_identity(address: str, dal: DataAccessLayer = dal_session):
+    identity = dal.find_one(schemas.Identity, address=address)
+    return schemas.IdentityResponse(
+        path=f"/v1/identity/{identity.address}",
+        identity=identity,
+    )
 
 
 # @app.get("/testint/{param}")
@@ -127,7 +118,7 @@ async def get_identity(address: str, db: Session = database.session):
 
 
 # @app.post("/v1/message/{address}", response_model=schemas.AckResponse)
-# async def message(pubkey: str, db: Session = database.session):
+# async def message(pubkey: str):
 #     pass
 
 

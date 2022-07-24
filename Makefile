@@ -30,10 +30,6 @@ api_serve:
 	ENV=$${ENV-dev} \
 		PYTHONPATH=src/:vendor/:$$PYTHONPATH \
 		PATH=$(DEV_ENV)/bin:$$PATH \
-		$(DEV_ENV_PY) -m alembic upgrade head
-	ENV=$${ENV-dev} \
-		PYTHONPATH=src/:vendor/:$$PYTHONPATH \
-		PATH=$(DEV_ENV)/bin:$$PATH \
 		$(DEV_ENV_PY) -m uvicorn guarantor.app:app --reload
 
 
@@ -42,3 +38,9 @@ api_serve:
 api_serve_prod:
 	$(DEV_ENV_PY) -m alembic upgrade head
 	$(DEV_ENV_PY) -m uvicorn guarantor.app:app
+
+
+.PHONY: chitchat
+chitchat:
+	GUARANTOR_URLS="http://127.0.0.1:8000" \
+		guarantor chat --topic default-topic --message "hello world"

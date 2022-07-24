@@ -6,6 +6,8 @@ from pycoin.symbols.btc import network as BTC
 
 from guarantor import crypto
 
+from . import fixtures
+
 MULTIBIT = '''
 -----BEGIN BITCOIN SIGNED MESSAGE-----
 This is an example of a signed message.
@@ -17,20 +19,8 @@ HCT1esk/TWlF/o9UNzLDANqsPXntkMErf7erIrjH5IBOZP98cNcmWmnW0GpSAi3wbr6CwpUAN4ctNn1T
 '''
 
 
-KEYS_FIXTURES = [
-    crypto.KeyPair(
-        wif="L4gXBvYrXHo59HLeyem94D9yLpRkURCHmCwQtPuWW9m6o1X8p8sp",
-        addr="1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv",
-    ),
-    crypto.KeyPair(
-        wif="5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss",
-        addr="1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN",
-    ),
-]
-
-
 def test_pycoin():
-    for wif, expected_addr in KEYS_FIXTURES:
+    for wif, expected_addr in fixtures.KEYS_FIXTURES:
         key = BTC.parse.wif(wif)
         assert key.address() == expected_addr
 
@@ -44,7 +34,7 @@ def test_pycoin():
 
             # check parsing works
             parsed_msg, parsed_addr, parsed_sig = BTC.msg.parse_signed(sig)
-            assert parsed_msg  == msg, parsed_msg
+            assert parsed_msg  == msg          , parsed_msg
             assert parsed_addr == expected_addr, parsed_addr
 
             sig2 = BTC.msg.sign(key, msg, verbose=0)
@@ -88,7 +78,7 @@ def test_generate_wif_master_secret_not_hex():
 
 
 def test_sign():
-    for wif, expected_addr in KEYS_FIXTURES:
+    for wif, expected_addr in fixtures.KEYS_FIXTURES:
         wif_addr = crypto.get_wif_address(wif)
         assert wif_addr == expected_addr
 
@@ -109,7 +99,7 @@ def test_verify():
 
 
 def test_compatibility():
-    for wif, expected_addr in KEYS_FIXTURES:
+    for wif, expected_addr in fixtures.KEYS_FIXTURES:
         wif_addr = crypto.get_wif_address(wif)
         assert wif_addr == expected_addr
 
