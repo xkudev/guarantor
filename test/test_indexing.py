@@ -27,5 +27,5 @@ def test_index_update():
     res1 = results[1]
 
     assert {res0.model_hash, res1.model_hash} == {bob_hash}
-    assert {res0.field, res1.field}      == {"props.name", "props.email"}
-    assert {res0.stem, res1.stem}        == {"bob", "bob@mail.com"}
+    assert {res0.field     , res1.field     } == {"props.name", "props.email"}
+    assert {res0.stem      , res1.stem      } == {"bob"       , "bob@mail.com"}
