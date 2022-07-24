@@ -18,7 +18,7 @@ class IndexDeclaration(typ.NamedTuple):
     fields  : list[str]
 
 
-INDEXE_DECLARATIONS = [
+INDEX_DECLARATIONS = [
     IndexDeclaration(
         datatype="guarantor.schemas.Identity",
         fields=["address", "props.name", "props.email", "props.twitter"],
@@ -30,8 +30,11 @@ Hash = str
 
 
 def _iter_terms(field_val: str) -> typ.Iterator[str]:
-    # TODO (mb 2022-07-17): maybe word stemming and such
+    # TODO (mb 2022-07-17): maybe word stemming, lower case and such
     yield field_val
+
+    if field_val.lower() != field_val:
+        yield field_val.lower()
 
     if "@" in field_val:
         yield field_val.split("@", 1)[-1]
@@ -52,16 +55,16 @@ def _get_field_val(model, field: str) -> str:
 
 
 class IndexItem(typ.NamedTuple):
-    stem: str
+    stem      : str
     model_hash: Hash
 
 
 class MatchItem(typ.NamedTuple):
-    stem: str
+    stem      : str
     model_hash: Hash
-    field: str
-    datatype: str
-    
+    datatype  : str
+    field     : str
+
 
 class Index:
     def __init__(self):
@@ -76,16 +79,16 @@ class Index:
             item = IndexItem(term, model_hash)
             self._pending_items.append(item)
 
-    def find(self, term: str) -> typ.Iterator[IndexItem]:
+    def find(self, search_term: str) -> typ.Iterator[IndexItem]:
         if self._pending_items:
             self._items.update(self._pending_items)
             self._pending_items.clear()
 
         # breakpoint()
-        idx = bisect.bisect_left(self._items, IndexItem(term, ""))
+        idx = bisect.bisect_left(self._items, IndexItem(search_term, ""))
         while idx < len(self._items):
             item = self._items[idx]
-            if item.stem.startswith(term):
+            if item.stem.startswith(search_term):
                 yield item
                 idx = idx + 1
             else:
@@ -100,30 +103,34 @@ def _get_datatype(model_type: type):
 
 
 def query_index(
-    model_type: type,
-    term      : str,
-    fields    : list[str] | None = None,
+    model_type : type,
+    search_term: str,
+    fields     : list[str] | None = None,
 ) -> list[IndexItem]:
     datatype = _get_datatype(model_type)
-    for index_decl in INDEXE_DECLARATIONS:
-        for field in index_decl.fields:
-            index = _INDEXES[index_decl.datatype, field]
-            for idx_item in index.find(term):
-                print("XXX: ", idx_item.model_hash, idx_item.stem)
-                yield MatchItem(
-                    stem=idx_item.stem, 
-                    model_hash=idx_item.model_hash,
-                    field=field,
-                    datatype=index_decl.datatype
-                )
+    for index_decl in INDEX_DECLARATIONS:
+        if index_decl.datatype == datatype:
+            _fields = set(index_decl.fields)
+            if fields is not None:
+                _fields = set(fields) & _fields
+
+            for field in _fields:
+                index = _INDEXES[index_decl.datatype, field]
+                for idx_item in index.find(search_term):
+                    yield MatchItem(
+                        stem=idx_item.stem,
+                        model_hash=idx_item.model_hash,
+                        datatype=index_decl.datatype,
+                        field=field,
+                    )
 
 
 def update_indexes(model: pydantic.BaseModel) -> list[Hash]:
     model_hash: Hash = crypto.deterministic_json_hash(model.dict())
     datatype = _get_datatype(model.__class__)
-    for index_decl in INDEXE_DECLARATIONS:
+    for index_decl in INDEX_DECLARATIONS:
         if index_decl.datatype == datatype:
             for field in index_decl.fields:
                 if field_val := _get_field_val(model, field):
-                    index     = _INDEXES[datatype, field]
+                    index = _INDEXES[datatype, field]
                     index.add(field_val, model_hash)
