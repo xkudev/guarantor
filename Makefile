@@ -30,10 +30,6 @@ api_serve:
 	ENV=$${ENV-dev} \
 		PYTHONPATH=src/:vendor/:$$PYTHONPATH \
 		PATH=$(DEV_ENV)/bin:$$PATH \
-		$(DEV_ENV_PY) -m alembic upgrade head
-	ENV=$${ENV-dev} \
-		PYTHONPATH=src/:vendor/:$$PYTHONPATH \
-		PATH=$(DEV_ENV)/bin:$$PATH \
 		$(DEV_ENV_PY) -m uvicorn guarantor.app:app --reload
 
 
