@@ -219,7 +219,7 @@ class Client:
 
     def post(
         self,
-        doc     : Document | DatabaseDocument,
+        doc     : Document,
         wif     : str,
         prev_doc: DatabaseDocument | None = None,
     ) -> ChangeHash:
