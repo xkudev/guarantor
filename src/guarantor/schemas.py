@@ -3,113 +3,187 @@
 #
 # Copyright (c) 2022 xkudev (xkudev@pm.me) - MIT License
 # SPDX-License-Identifier: MIT
+import json
 import typing as typ
 import importlib
 
 import pydantic
+import datetime as dt
 
 from guarantor import crypto
 
-ModelId = str
+ChangeId = str
 
-BaseModel = pydantic.BaseModel
+BaseDocument = pydantic.BaseModel
+DocTypeClass = typ.Type[BaseDocument]
+
+DocType  = typ.NewType('DocType', str)
+Revision = typ.NewType('Revision', str)
 
 
-def get_datatype(model_or_type: BaseModel | type) -> str:
-    if isinstance(model_or_type, BaseModel):
-        model_type = model_or_type.__class__
+def increment_revision(change_id: ChangeId, rev: Revision | None) -> Revision:
+    if rev is None:
+        rev_num = 0
+        root = change_id[:8]
     else:
-        model_type = model_or_type
+        _, root, old_rev, _ = rev.rsplit("_", 3)
+        rev_num = (int(old_rev, base=16) + 1) % (16 ** 6)
 
-    return model_type.__module__ + ":" + model_type.__name__
+    now = dt.datetime.utcnow()
+    return "_".join((
+        now.strftime("%Y%m%d%H%M"),
+        root,
+        hex(rev_num)[2:].zfill(6),
+        change_id[:8],
+    ))
 
 
-_model_types: dict[str, type] = {}
+def get_doctype(doc_or_clazz: BaseDocument | DocTypeClass) -> DocType:
+    if isinstance(doc_or_clazz, BaseDocument):
+        doctype = doc_or_clazz.__class__
+    else:
+        doctype = doc_or_clazz
+
+    return doctype.__module__ + ":" + doctype.__name__
 
 
-def load_model_type(datatype: str) -> type:
-    if datatype not in _model_types:
+_doc_types: dict[DocType, DocTypeClass] = {}
+
+
+def load_doctype_class(datatype: str) -> DocTypeClass:
+    if datatype not in _doc_types:
         module_name, class_name = datatype.split(":", 1)
         module = importlib.import_module(module_name)
-        _model_types[datatype] = getattr(module, class_name)
-    return _model_types[datatype]
+        _doc_types[datatype] = getattr(module, class_name)
+    return _doc_types[datatype]
 
 
-class BaseEnvelope(BaseModel):
-    # TODO head_id   : str
-    # TODO prev_id   : str | None
-    # TODO generation: int
+class Change(pydantic.BaseModel):
+    # distributed/persisted
+    opcode : str
+    opdata : dict[str, typ.Any]
+    doctype: DocType
+    address: str
+    parent : ChangeId | None
 
-    document: BaseModel
+    change_id: ChangeId     # digest of above fields
+    rev: Revision
+    signature: str          # signature of change.change_id
 
-    address  : str
-    signature: str | None
+
+def derive_change_id(
+    opcode   : str,
+    opdata   : dict[str, typ.Any],
+    doctype  : DocType,
+    address  : str,
+    parent_id   : ChangeId | None,
+) -> ChangeId:
+    signing_data = {
+        'opcode' : opcode,
+        'opdata' : opdata,
+        'doctype': doctype,
+        'address': address,
+        'parent_id' : parent_id,
+    }
+    return crypto.deterministic_json_hash(signing_data)
 
 
-class GenericDocument(BaseModel):
+class VerificationError(Exception):
+    pass
+
+
+def _is_valid_change(change: Change) -> bool:
+    expected_change_id = derive_change_id(
+        change.opcode, change.opdata, change.doctype, change.address, change.parent
+    )
+    assert change.change_id == expected_change_id, f"Invalid change_id {change.change_id} != {expected_change_id}"
+    return crypto.verify(change.address, change.signature, change.change_id)
+
+
+def loads_change(change_data: bytes) -> Change:
+    change_dict = json.loads(change_data.decode("utf-8"))
+    change      = Change(**change_dict)
+
+    if _is_valid_change(change):
+        return change
+    else:
+        raise VerificationError(change_data)
+
+
+def dumps_change(change: Change) -> bytes:
+    return json.dumps(change.dict()).encode("utf-8")
+
+
+# def verify_document(doc_ref: DocumentReference) -> bool:
+#     if doc_ref.signature is None:
+#         return False
+#     else:
+#         obj       = doc_ref.document.dict()
+#         hexdigest = crypto.deterministic_json_hash(obj)
+#         return crypto.verify(
+#             address=doc_ref.address,
+#             signature=doc_ref.signature,
+#             message=hexdigest,
+#         )
+
+
+# def sign_envelope(doc_ref: DocumentReference, wif: str) -> DocumentReference:
+#     obj       = doc_ref.document.dict()
+#     hexdigest = crypto.deterministic_json_hash(obj)
+#     return DocumentReference(
+#         address=doc_ref.address,
+#         document=doc_ref.document,
+#         signature=crypto.sign(hexdigest, wif),
+#     )
+
+
+# def verify_identity_envelope(identity_ref) -> bool:
+#     valid_sig        = verify_document(doc_ref=identity_ref)
+#     is_matching_addr = identity_ref.address == identity_ref.document.address
+#     return is_matching_addr and valid_sig
+
+
+class DocumentReference(typ.NamedTuple):
+    # in memory reference (not-persisted)
+    doc : BaseDocument
+    head: ChangeId
+    rev : Revision
+
+
+class GenericDocument(BaseDocument):
+    title: str
     props: dict[str, typ.Any]
 
 
-class Identity(BaseModel):
+class Identity(BaseDocument):
     address: str
     props  : dict[str, typ.Any]
 
 
-class IdentityEnvelope(BaseEnvelope):
-    document: Identity
-
-
-class IdentityResponse(BaseModel):
-    path    : str
-    identity: IdentityEnvelope
-
-
-def verify_base_envelope(base_envelope: BaseEnvelope) -> bool:
-    if base_envelope.signature is None:
-        return False
-    else:
-        obj       = base_envelope.document.dict()
-        hexdigest = crypto.deterministic_json_hash(obj)
-        return crypto.verify(
-            address=base_envelope.address,
-            signature=base_envelope.signature,
-            message=hexdigest,
-        )
-
-
-def sign_envelope(base_envelope: BaseEnvelope, wif: str) -> BaseEnvelope:
-    obj       = base_envelope.document.dict()
-    hexdigest = crypto.deterministic_json_hash(obj)
-    return BaseEnvelope(
-        address=base_envelope.address,
-        document=base_envelope.document,
-        signature=crypto.sign(hexdigest, wif),
-    )
-
-
-def verify_identity_envelope(identity_envelope) -> bool:
-    valid_sig        = verify_base_envelope(base_envelope=identity_envelope)
-    matching_attress = identity_envelope.address == identity_envelope.document.address
-    return matching_attress and valid_sig
-
-
-class ChatMessage(BaseModel):
+class ChatMessage(BaseDocument):
     topic : str
     iso_ts: str
     text  : str
 
 
+class IdentityResponse(pydantic.BaseModel):
+    path    : str
+    identity: BaseDocument
+
+
+class IdentityEnvelope(pydantic.BaseModel):
+    # path    : str
+    # identity: BaseDocument
+    pass
+
+
 # maybe maybe maybe
 #
-#
-#
-#
-#
-# class PolicyOffer(BaseModel):
+# class PolicyOffer(BaseDocument):
 #     pass
 #
 #
-# class PolicyContract(BaseModel):
+# class PolicyContract(BaseDocument):
 #     pass
 #
 #
@@ -118,10 +192,10 @@ class ChatMessage(BaseModel):
 # ROLE_JUDGE     = "judge"
 #
 #
-# class ClaimAssociation(BaseModel):
+# class ClaimAssociation(BaseDocument):
 #     identity: Identity
 #     role    : str
 #
 #
-# class PolicyClaim(BaseModel):
+# class PolicyClaim(BaseDocument):
 #     pass

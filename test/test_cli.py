@@ -63,7 +63,6 @@ def server():
 
     serve_env = new_env()
 
-    sp.run(["python", "-m", "alembic", "upgrade", "head"], check=True)
     serve_cmd = ["python", "-m", "guarantor", "serve", "--no-reload"]
 
     if capture_serve_output:

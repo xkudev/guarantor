@@ -19,7 +19,11 @@ class IndexDeclaration(typ.NamedTuple):
 
 INDEX_DECLARATIONS = [
     IndexDeclaration(
-        datatype="guarantor.schemas.Identity",
+        datatype="guarantor.schemas:GenericDocument",
+        fields=['title'],
+    ),
+    IndexDeclaration(
+        datatype="guarantor.schemas:Identity",
         fields=["address", "props.name", "props.email", "props.twitter"],
     ),
 ]
@@ -38,29 +42,39 @@ def _iter_terms(field_val: str) -> typ.Iterator[str]:
     if "@" in field_val:
         yield field_val.split("@", 1)[-1]
 
+    for word in field_val.split()[1:]:
+        yield word
+        if word != word.lower():
+            yield word
 
-def _get_field_val(model, field: str) -> str:
+
+def _get_field_val(doc, field: str) -> (str | None):
     if "." in field:
         attrname, rest_key = field.split(".", 1)
-        attrval = getattr(model, attrname)
+        attrval = getattr(doc, attrname)
         while attrval and "." in rest_key:
             parent_key, rest_key = rest_key.split(".", 1)
             attrval = attrval and attrval.get(parent_key)
 
-        return attrval and attrval.get(rest_key)
+        field_val = attrval and attrval.get(rest_key)
     else:
-        attrname = field
-        return getattr(model, attrname)
+        attrname  = field
+        field_val = getattr(doc, attrname, None)
+
+    if field_val is None:
+        return None
+    else:
+        return str(field_val)
 
 
 class IndexItem(typ.NamedTuple):
-    stem    : str
-    model_id: Hash
+    stem  : str
+    doc_id: Hash
 
 
 class MatchItem(typ.NamedTuple):
     stem    : str
-    model_id: Hash
+    doc_id  : Hash
     datatype: str
     field   : str
 
@@ -70,12 +84,13 @@ class Index:
         self._items         = sortedcontainers.SortedList()
         self._pending_items = []
 
-    def add(self, field_val: str, model_id: str) -> None:
-        for term in _iter_terms(field_val):
-            if term is None:
-                continue
+    def add(self, field_val: str, doc_id: str) -> None:
+        for term in set(_iter_terms(field_val)):
+            # if term is None:
+            #     continue
+            print("???", (field_val, term))
 
-            item = IndexItem(term, model_id)
+            item = IndexItem(term, doc_id)
             self._pending_items.append(item)
 
     def find(self, search_term: str) -> typ.Iterator[IndexItem]:
@@ -83,7 +98,6 @@ class Index:
             self._items.update(self._pending_items)
             self._pending_items.clear()
 
-        # breakpoint()
         idx = bisect.bisect_left(self._items, IndexItem(search_term, ""))
         while idx < len(self._items):
             item = self._items[idx]
@@ -94,11 +108,9 @@ class Index:
                 break
 
 
-_INDEXES = collections.defaultdict(Index)
+IndexKey = tuple[str, str]
 
-
-def _get_datatype(model_type: type):
-    return model_type.__module__ + "." + model_type.__name__
+_INDEXES: dict[IndexKey, Index] = collections.defaultdict(Index)
 
 
 def query_index(
@@ -117,17 +129,17 @@ def query_index(
                 for idx_item in index.find(search_term):
                     yield MatchItem(
                         stem=idx_item.stem,
-                        model_id=idx_item.model_id,
+                        doc_id=idx_item.doc_id,
                         datatype=index_decl.datatype,
                         field=field,
                     )
 
 
-def update_indexes(model_id: str, model: schemas.BaseModel) -> list[Hash]:
-    datatype = schemas.get_datatype(model)
+def update_indexes(doc_id: str, doc: schemas.BaseDocument) -> None:
+    datatype = schemas.get_doctype(doc)
     for index_decl in INDEX_DECLARATIONS:
         if index_decl.datatype == datatype:
             for field in index_decl.fields:
-                if field_val := _get_field_val(model, field):
+                if field_val := _get_field_val(doc, field):
                     index = _INDEXES[datatype, field]
-                    index.add(field_val, model_id)
+                    index.add(field_val, doc_id)

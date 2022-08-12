@@ -13,6 +13,7 @@ import datetime as dt
 
 import click
 
+from guarantor import env
 from guarantor import cli_util
 
 try:
@@ -56,9 +57,9 @@ def cli() -> None:
 
 @cli.command()
 @opt("bind"     , "IP:port to serve on"     , default="0.0.0.0:21021")
-@opt("db_path"  , "Database Path"           , default=cli_util.DEFAULT_DB_PATH)
+@opt("db_dir"   , "Database Directory"      , default=env.DEFAULT_DB_DIR)
 @opt("no_reload", "Disable realod for serve", default=False)
-def serve(bind: str, db_path: str, no_reload: bool) -> None:
+def serve(bind: str, db_dir: str, no_reload: bool) -> None:
     """Serve API app with uvicorn"""
     # pylint: disable=import-outside-toplevel
     import uvicorn
@@ -68,9 +69,10 @@ def serve(bind: str, db_path: str, no_reload: bool) -> None:
     if "://" in bind:
         proto, bind = bind.split("://")
         assert proto == "http"
+
     host, port = bind.strip("/").split(":")
-    # database.DB_URL = db_path
-    # raise Exception("TODO: change_db.DB_URL = db_path")
+    # database.DB_URL = db_dir
+    # raise Exception("TODO: change_db.DB_URL = db_dir")
     uvicorn.run("guarantor.app:app", host=host, port=int(port), reload=not no_reload)
 
 

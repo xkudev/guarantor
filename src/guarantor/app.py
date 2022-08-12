@@ -27,14 +27,13 @@ from guarantor.dal import DataAccessLayer
 
 dal_session = fastapi.Depends(DataAccessLayer)
 
-app = fastapi.FastAPI()
-
 
 logger = logging.getLogger("guarantor.app")
 
 static_dir = pl.Path(__file__).parent / "static"
 
 
+app = fastapi.FastAPI()
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
@@ -58,25 +57,22 @@ async def info():
 
 
 @app.post("/v1/identity", response_model=schemas.IdentityResponse, status_code=201)
-async def post_identity(identity: schemas.IdentityEnvelope):
+async def post_identity(identity: schemas.IdentityEnvelope, dal: DataAccessLayer = dal_session):
     # need better way to detect failure, unique ignored -_-
+    address          = identity.document.address
     prev_db_identity = dal.find_one(schemas.Identity, address=address)
     if prev_db_identity:
-        raise fastapi.HTTPException(
-            status_code=409, detail=f"Identity {identity.document.address} already exists!"
-        )
+        raise fastapi.HTTPException(status_code=409, detail=f"Identity {address} already exists!")
 
-    db_identity = schemas.Identity(
-        address=identity.document.address,
+    identity = schemas.Identity(
+        address=address,
         props=json.dumps(identity.document.props),
     )
-    db.add(db_identity)
-    db.commit()
-    db.refresh(db_identity)
+    dal.post(identity)
 
     # need return value based only on db data instead (save signature)
     return schemas.IdentityResponse(
-        path=f"/v1/identity/{identity.document.address}",
+        path=f"/v1/identity/{identity.address}",
         identity=identity,
     )
 
