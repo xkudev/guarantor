@@ -60,14 +60,15 @@ def load_doctype_class(datatype: str) -> DocTypeClass:
 
 class Change(pydantic.BaseModel):
     # distributed/persisted
+    address: str            # affiliation
     opcode : str
     opdata : dict[str, typ.Any]
     doctype: DocType
-    address: str
     parent : ChangeId | None
+    rev: Revision
+    pow_nonce: int          # for proof of work
 
     change_id: ChangeId     # digest of above fields
-    rev: Revision
     signature: str          # signature of change.change_id
 
 
