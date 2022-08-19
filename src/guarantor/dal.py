@@ -3,6 +3,8 @@
 #
 # Copyright (c) 2022 xkudev (xkudev@pm.me) - MIT License
 # SPDX-License-Identifier: MIT
+from __future__ import annotations
+
 import typing as typ
 import pathlib as pl
 
@@ -32,8 +34,9 @@ class DataAccessLayer:
         self.kvstore    = kvstore.Client(db_dir, flag='c')
         self.difficulty = difficulty
 
-    def new(self, clazz: schemas.DocTypeClass, **kwargs) -> 'DocumentWrapper':
-        if self.wif is None:
+    def new(self, clazz: schemas.DocTypeClass, **kwargs) -> DocumentWrapper:
+        wif = self.wif
+        if wif is None:
             raise Exception("A 'wif' needed to create a new document.")
 
         doc     = clazz(**kwargs)
@@ -44,57 +47,81 @@ class DataAccessLayer:
             doctype=doctype,
             op=op,
             parent=None,
-            wif=self.wif,
+            wif=wif,
             difficulty=self.difficulty,
         )
-        return DocumentWrapper(dal=self, doc=doc, changes=[change])
+        return DocumentWrapper(dal=self, doc=doc, changes=[], tmp_changes=[change])
 
-    def get(self, head: schemas.ChangeId) -> 'DocumentWrapper':
+    def get(self, head: schemas.ChangeId) -> DocumentWrapper:
         # TODO (mb 2022-08-07): async, to encourage batching?
-        doc_ref = self.kvstore.get(head)
         changes = list(self.kvstore.iter_changes(head))
-        doc     = docdiff.build_document(changes)
-        assert doc_ref.head == head, f"Mismatched head {doc_ref.head} != {head}"
-        return DocumentWrapper(dal=self, doc=doc_ref.doc, head=doc_ref.head, rev=doc_ref.rev)
+        changes.sort()
+        assert changes[-1].change_id == head, f"Mismatched head {changes[-1].change_id} != {head}"
 
-    def _find_matches(self, datatype: str, search_kwargs: dict) -> typ.Iterator[indexing.MatchItem]:
+        doc = docdiff.build_document(changes)
+        return DocumentWrapper(dal=self, doc=doc, changes=changes, tmp_changes=[])
+
+    def _find_matches(self, doctype: str, search_kwargs: dict) -> typ.Iterator[indexing.MatchItem]:
+        # pylint: disable=no-self-use; this will change as we flesh out the indexing module
         if not search_kwargs:
             raise TypeError("Missing keyword arguments: **search_kwargs")
 
         for field, search_term in search_kwargs.items():
-            yield from indexing.query_index(datatype, search_term, fields=[field])
+            yield from indexing.query_index(doctype, search_term, fields=[field])
 
-    def find(self, datatype: str, **search_kwargs) -> typ.Iterator['DocumentWrapper']:
-        for match in self._find_matches(datatype, search_kwargs):
-            yield self.get(match.doc_id)
+    def find(self, doctype: str, **search_kwargs) -> typ.Iterator[DocumentWrapper]:
+        for match in self._find_matches(doctype, search_kwargs):
+            yield self.get(match.head)
 
-    def find_one(self, datatype: str, **search_kwargs) -> schemas.BaseDocument | None:
-        doc_wrp: DocumentWrapper | None = None
-        for match in self._find_matches(datatype, search_kwargs):
-            doc_wrp = self.get(match.doc_id)
-            if doc_wrp is None or doc.generation < envelope.generation:
-                doc = envelope
+    def find_one(self, doctype: str, **search_kwargs) -> DocumentWrapper | None:
+        result: DocumentWrapper | None = None
+        for match in self._find_matches(doctype, search_kwargs):
+            maybe_result = self.get(match.head)
+            if result is None or maybe_result.head_rev > result.head_rev:
+                result = maybe_result
 
-        return DocumentWrapper(dal=self, doc=doc, head=head, rev=rev)
+        return result
+
+
+def _verify_doc_changes(doc: schemas.BaseDocument, changes: list[schemas.Change]):
+    doc_from_scratch = docdiff.build_document(changes)
+    assert doc == doc_from_scratch, doc == doc_from_scratch
 
 
 class DocumentWrapper:
 
-    _dal   : DataAccessLayer
-    doc    : schemas.BaseDocument
-    changes: list[schemas.Change]
+    _dal       : DataAccessLayer
+    doc        : schemas.BaseDocument
+    head       : schemas.ChangeId
+    head_rev   : schemas.Revision
+    changes    : list[schemas.Change]
+    tmp_changes: list[schemas.Change]
 
     def __init__(
         self,
-        dal    : DataAccessLayer,
-        doc    : schemas.BaseDocument,
-        changes: list[schemas.Change],
-    ):
-        self._dal    = dal
-        self.doc     = doc
-        self.changes = changes
+        dal        : DataAccessLayer,
+        doc        : schemas.BaseDocument,
+        changes    : list[schemas.Change],
+        tmp_changes: list[schemas.Change],
+    ) -> None:
+        self._dal = dal
+        self.doc  = doc
 
-    def update(self, **updated_doc_kwargs) -> 'DocumentWrapper':
+        all_changes = sorted(changes + tmp_changes)
+
+        self.head     = all_changes[-1].change_id
+        self.head_rev = all_changes[-1].rev
+
+        self.changes     = changes
+        self.tmp_changes = tmp_changes
+
+        _verify_doc_changes(self.doc, all_changes)
+
+    def update(self, **updated_doc_kwargs) -> DocumentWrapper:
+        wif = self._dal.wif
+        if wif is None:
+            raise Exception("A 'wif' needed to update a document.")
+
         doctype = schemas.get_doctype(self.doc)
 
         old_doc_kw = self.doc.dict()
@@ -103,23 +130,39 @@ class DocumentWrapper:
             new_doc_kw[key] = val
 
         op     = docdiff.make_diff(old_doc_kw, new_doc_kw)
-        parent = self.changes[-1]
+        parent = (self.changes + self.tmp_changes)[-1]
+
         change = docdiff.make_change(
             doctype=doctype,
             op=op,
             parent=parent,
-            wif=self._dal.wif,
+            wif=wif,
             difficulty=self._dal.difficulty,
         )
 
+        new_doc = docdiff.doc_patch(self.doc, op=op)
+        return DocumentWrapper(
+            dal=self._dal,
+            doc=new_doc,
+            changes=self.changes,
+            tmp_changes=self.tmp_changes + [change],
+        )
+
+    def save(self) -> DocumentWrapper:
         # TODO (mb 2022-08-19): also post to DHT
-        self._dal.kvstore.post(change)
+        for change in self.tmp_changes:
+            self._dal.kvstore.post(change)
 
-        new_changes = self.changes + [change]
-        new_doc     = docdiff.doc_patch(op=op, doc=self.doc)
+        indexing.update_indexes(self.head, self.doc)
 
-        assert docdiff.build_document(new_changes) == new_doc
-        return DocumentWrapper(dal=self._dal, doc=new_doc, changes=new_changes)
+        return DocumentWrapper(
+            dal=self._dal,
+            doc=self.doc,
+            changes=self.changes + self.tmp_changes,
+            tmp_changes=[],
+        )
 
-    def __eq__(self, other: 'DocumentWrapper') -> bool:
-        return self.head == other.head
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, DocumentWrapper) and self.head == other.head
+
+    # TODO (mb 2022-08-19): getattr and setattr

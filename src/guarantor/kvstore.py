@@ -32,10 +32,11 @@ logger = logging.getLogger(__name__)
 
 class Client:
     def __init__(self, db_dir: str | pl.Path, flag: typ.Literal['r', 'c'] = 'r'):
-        self.db_dir = db_dir
+        self.db_dir = pl.Path(db_dir)
         self.flag   = flag
 
     def dbm_path(self, change_id: schemas.ChangeId) -> pl.Path:
+        # pylint: disable=unused-argument; change_id is to allow for future sharding
         # NOTE (mb 2022-07-24): To keep file sizes managable, and to reduce
         #   multithreading contention, we might shard based on change_id.
         return self.db_dir / "db.dbm"

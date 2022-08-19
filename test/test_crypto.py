@@ -1,4 +1,3 @@
-import typing as typ
 from collections import OrderedDict
 
 import pytest

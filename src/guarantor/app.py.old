@@ -57,21 +57,23 @@ async def info():
 
 
 @app.post("/v1/identity", response_model=schemas.IdentityResponse, status_code=201)
-async def post_identity(identity: schemas.IdentityEnvelope, dal: DataAccessLayer = ro_dal):
+async def post_identity(identity_req: schemas.IdentityRequest, dal: DataAccessLayer = ro_dal):
     # need better way to detect failure, unique ignored -_-
     address          = identity.document.address
     prev_db_identity = dal.find_one(schemas.Identity, address=address)
     if prev_db_identity:
         raise fastapi.HTTPException(status_code=409, detail=f"Identity {address} already exists!")
 
+    identity = dal.new(schemas.Identity, address=address, props=json.dumps(identity.document.props))
     identity = schemas.Identity(
-        address=address,
-        props=json.dumps(identity.document.props),
+
     )
     dal.post(identity)
 
     # need return value based only on db data instead (save signature)
     return schemas.IdentityResponse(
+        status=201,
+        errmsg=None,
         path=f"/v1/identity/{identity.address}",
         identity=identity,
     )

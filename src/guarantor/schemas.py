@@ -19,7 +19,6 @@ ChangeId = str
 BaseDocument = pydantic.BaseModel
 DocTypeClass = typ.Type[BaseDocument]
 
-DocHash  = typ.NewType('DocHash', str)
 DocType  = typ.NewType('DocType', str)
 Revision = typ.NewType('Revision', str)
 
@@ -27,22 +26,16 @@ Revision = typ.NewType('Revision', str)
 def increment_revision(doctype: DocType, change_id: ChangeId, rev: Revision | None) -> Revision:
     doctype_cleanded = doctype.replace(":", "_").replace(".", "_").lower()
     if rev is None:
-        rev_num = 0
         root_id = change_id[:8]
+        rev_num = 0
     else:
         _, root_id, old_rev, _ = rev.split("_", 3)
         rev_num = (int(old_rev, base=16) + 1) % (16 ** 8)
 
-    now = dt.datetime.utcnow()
-    return "_".join(
-        (
-            now.strftime("%Y%m%d%H%M"),
-            root_id,
-            hex(rev_num)[2:].zfill(8),
-            change_id[:8],
-            doctype_cleanded,
-        )
-    )
+    now     = dt.datetime.utcnow()
+    ts_str  = now.strftime("%Y%m%d%H%M")
+    rev_hex = hex(rev_num)[2:].zfill(8)
+    return Revision(f"{ts_str}_{root_id}_{rev_hex}_{change_id[:8]}_{doctype_cleanded}")
 
 
 def get_doctype(doc_or_clazz: BaseDocument | DocTypeClass) -> DocType:
@@ -51,23 +44,23 @@ def get_doctype(doc_or_clazz: BaseDocument | DocTypeClass) -> DocType:
     else:
         doctype = doc_or_clazz
 
-    return doctype.__module__ + ":" + doctype.__name__
+    return DocType(doctype.__module__ + ":" + doctype.__name__)
 
 
 _doc_types: dict[DocType, DocTypeClass] = {}
 
 
-def load_doctype_class(datatype: str) -> DocTypeClass:
-    if datatype not in _doc_types:
-        module_name, class_name = datatype.split(":", 1)
+def load_doctype_class(doctype: DocType) -> DocTypeClass:
+    if doctype not in _doc_types:
+        module_name, class_name = doctype.split(":", 1)
         module = importlib.import_module(module_name)
-        _doc_types[datatype] = getattr(module, class_name)
-    return _doc_types[datatype]
+        _doc_types[doctype] = getattr(module, class_name)
+    return _doc_types[doctype]
 
 
 class Change(pydantic.BaseModel):
     # distributed/persisted
-    address  : str  # affiliation
+    address  : str  # author/affiliation
     doctype  : DocType
     opcode   : str
     opdata   : dict[str, typ.Any]
@@ -77,12 +70,24 @@ class Change(pydantic.BaseModel):
     rev      : Revision
     signature: str  # signature of change_id + rev
 
-    # NOTE (mb 2022-08-18): The pow is not part of the signature, so that a new
-    #   pow can be supplied, to help keep a change alive.
-    # NOTE (mb 2022-08-18): The pow can only be to mitigate spam. Ultimately
-    #    other criteria will be more important when it comes to the eviction
-    #    policy of a node.
+    # NOTE (mb 2022-08-18): The pow is not part of the signature, so
+    #   that a new pow can be supplied, to help keep a change alive.
+    # NOTE (mb 2022-08-18): The pow can only be to mitigate spam.
+    #    Ultimately other criteria are more important when it comes to
+    #    the eviction policy of a node.
     proof_of_work: str
+
+    def __lt__(self, other: 'Change') -> bool:
+        return self.rev < other.rev
+
+    def __le__(self, other: 'Change') -> bool:
+        return self.rev <= other.rev
+
+    def __gt__(self, other: 'Change') -> bool:
+        return self.rev > other.rev
+
+    def __ge__(self, other: 'Change') -> bool:
+        return self.rev >= other.rev
 
 
 CHANGE_ID_FIELDS = ['address', 'doctype', 'opcode', 'opdata', 'parent_id']
@@ -111,7 +116,7 @@ def calculate_pow(change_id: ChangeId, difficulty: int = DEFAULT_DIFFICULTY_BITS
         nonce += 1
 
 
-def get_pow_difficulty(change_id: str, pow_str: str) -> int:
+def get_pow_difficulty(change_id: str, pow_str: str) -> float:
     version, nonce, digest = pow_str.split("$")
     assert version == "POWv0"
 
@@ -180,7 +185,6 @@ def loads_change(change_data: bytes) -> Change:
 
 
 def dumps_change(change: Change) -> bytes:
-    # TODO add compression because try fit in udp
     return json.dumps(change.dict()).encode("utf-8")
 
 
@@ -230,21 +234,30 @@ class Identity(BaseDocument):
     props  : dict[str, typ.Any]
 
 
-class ChatMessage(BaseDocument):
-    topic : str
-    iso_ts: str
-    text  : str
+# class RepsonseDetail(pydantic.BaseModel):
+#     code: int
+#     msg: str | None
 
 
-class IdentityResponse(pydantic.BaseModel):
-    path    : str
-    identity: BaseDocument
+# class BaseResponse(pydantic.BaseModel):
+#     detail: RepsonseDetail
 
 
-class IdentityEnvelope(pydantic.BaseModel):
-    # path    : str
-    # identity: BaseDocument
-    pass
+# class IdentityResponse(BaseResponse):
+#     path    : str
+#     identity: Identity
+
+
+# class IdentityRequest(pydantic.BaseModel):
+#     # path    : str
+#     # identity: BaseDocument
+#     pass
+
+
+# class ChatMessage(BaseDocument):
+#     topic : str
+#     iso_ts: str
+#     text  : str
 
 
 # maybe maybe maybe
