@@ -4,11 +4,13 @@
 # Copyright (c) 2022 xkudev (xkudev@pm.me) - MIT License
 # SPDX-License-Identifier: MIT
 import json
+import math
 import typing as typ
+import hashlib
+import datetime as dt
 import importlib
 
 import pydantic
-import datetime as dt
 
 from guarantor import crypto
 
@@ -17,25 +19,30 @@ ChangeId = str
 BaseDocument = pydantic.BaseModel
 DocTypeClass = typ.Type[BaseDocument]
 
+DocHash  = typ.NewType('DocHash', str)
 DocType  = typ.NewType('DocType', str)
 Revision = typ.NewType('Revision', str)
 
 
-def increment_revision(change_id: ChangeId, rev: Revision | None) -> Revision:
+def increment_revision(doctype: DocType, change_id: ChangeId, rev: Revision | None) -> Revision:
+    doctype_cleanded = doctype.replace(":", "_").replace(".", "_").lower()
     if rev is None:
         rev_num = 0
-        root = change_id[:8]
+        root_id = change_id[:8]
     else:
-        _, root, old_rev, _ = rev.rsplit("_", 3)
-        rev_num = (int(old_rev, base=16) + 1) % (16 ** 6)
+        _, root_id, old_rev, _ = rev.split("_", 3)
+        rev_num = (int(old_rev, base=16) + 1) % (16 ** 8)
 
     now = dt.datetime.utcnow()
-    return "_".join((
-        now.strftime("%Y%m%d%H%M"),
-        root,
-        hex(rev_num)[2:].zfill(6),
-        change_id[:8],
-    ))
+    return "_".join(
+        (
+            now.strftime("%Y%m%d%H%M"),
+            root_id,
+            hex(rev_num)[2:].zfill(8),
+            change_id[:8],
+            doctype_cleanded,
+        )
+    )
 
 
 def get_doctype(doc_or_clazz: BaseDocument | DocTypeClass) -> DocType:
@@ -60,45 +67,106 @@ def load_doctype_class(datatype: str) -> DocTypeClass:
 
 class Change(pydantic.BaseModel):
     # distributed/persisted
-    address: str            # affiliation
-    opcode : str
-    opdata : dict[str, typ.Any]
-    doctype: DocType
-    parent : ChangeId | None
-    rev: Revision
-    pow_nonce: int          # for proof of work
+    address  : str  # affiliation
+    doctype  : DocType
+    opcode   : str
+    opdata   : dict[str, typ.Any]
+    parent_id: ChangeId | None
 
-    change_id: ChangeId     # digest of above fields
-    signature: str          # signature of change.change_id
+    change_id: ChangeId  # digest of above fields
+    rev      : Revision
+    signature: str  # signature of change_id + rev
+
+    # NOTE (mb 2022-08-18): The pow is not part of the signature, so that a new
+    #   pow can be supplied, to help keep a change alive.
+    # NOTE (mb 2022-08-18): The pow can only be to mitigate spam. Ultimately
+    #    other criteria will be more important when it comes to the eviction
+    #    policy of a node.
+    proof_of_work: str
 
 
-def derive_change_id(
-    opcode   : str,
-    opdata   : dict[str, typ.Any],
-    doctype  : DocType,
-    address  : str,
-    parent_id   : ChangeId | None,
-) -> ChangeId:
-    signing_data = {
-        'opcode' : opcode,
-        'opdata' : opdata,
-        'doctype': doctype,
-        'address': address,
-        'parent_id' : parent_id,
-    }
-    return crypto.deterministic_json_hash(signing_data)
+CHANGE_ID_FIELDS = ['address', 'doctype', 'opcode', 'opdata', 'parent_id']
+
+
+def derive_change_id(change: Change) -> ChangeId:
+    change_fields = change.dict()
+    field_values  = [change_fields[field] for field in CHANGE_ID_FIELDS]
+    return crypto.deterministic_json_hash(field_values)
+
+
+DEFAULT_DIFFICULTY_BITS = 12
+
+
+def calculate_pow(change_id: ChangeId, difficulty: int = DEFAULT_DIFFICULTY_BITS) -> str:
+    assert difficulty < 40
+
+    target = 2 ** (60 - difficulty)
+    nonce  = 0
+    while True:
+        data   = (change_id + str(nonce)).encode("ascii")
+        digest = hashlib.sha1(data).hexdigest()[:15]
+        if int(digest, 16) < target:
+            return f"POWv0${nonce}${digest}"
+
+        nonce += 1
+
+
+def get_pow_difficulty(change_id: str, pow_str: str) -> int:
+    version, nonce, digest = pow_str.split("$")
+    assert version == "POWv0"
+
+    data   = (change_id + str(nonce)).encode("ascii")
+    digest = hashlib.sha1(data).hexdigest()[:15]
+    return 60 - math.log2(int(digest, 16))
+
+
+def _is_valid_change(change: Change) -> bool:
+    expected_change_id = derive_change_id(change)
+    if change.change_id == expected_change_id:
+        return crypto.verify(change.address, change.signature, change.change_id + change.rev)
+    else:
+        raise AssertionError(f"Invalid change_id {change.change_id} != {expected_change_id}")
+
+
+def make_change(
+    wif       : str,
+    doctype   : DocType,
+    opcode    : str,
+    opdata    : dict[str, typ.Any],
+    parent_id : ChangeId | None = None,
+    parent_rev: Revision | None = None,
+    difficulty: int = DEFAULT_DIFFICULTY_BITS,
+) -> Change:
+    address = crypto.get_wif_address(wif)
+    change  = Change(
+        address=address,
+        doctype=doctype,
+        opcode=opcode,
+        opdata=opdata,
+        parent_id=parent_id,
+        rev="invalid",
+        change_id="invalid",
+        signature="invalid",
+        proof_of_work="invalid",
+    )
+    change.change_id     = derive_change_id(change)
+    change.rev           = increment_revision(doctype, change.change_id, parent_rev)
+    change.signature     = crypto.sign(message=change.change_id + change.rev, wif=wif)
+    change.proof_of_work = calculate_pow(change.change_id, difficulty)
+    return change
 
 
 class VerificationError(Exception):
     pass
 
 
-def _is_valid_change(change: Change) -> bool:
-    expected_change_id = derive_change_id(
-        change.opcode, change.opdata, change.doctype, change.address, change.parent
-    )
-    assert change.change_id == expected_change_id, f"Invalid change_id {change.change_id} != {expected_change_id}"
-    return crypto.verify(change.address, change.signature, change.change_id)
+def verify_change(change: Change) -> bool:
+    change_id = derive_change_id(change)
+    if change.change_id == change_id:
+        return crypto.verify(change.address, change.signature, message=change_id + change.rev)
+    else:
+        errmsg = f"change_id {change.change_id} != {change_id}"
+        raise schemas.VerificationError(errmsg)
 
 
 def loads_change(change_data: bytes) -> Change:

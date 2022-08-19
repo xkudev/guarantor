@@ -106,12 +106,23 @@ def test_get_datatype():
     assert schemas.get_datatype(schemas.Identity) == "guarantor.schemas:Identity"
 
 
-def test_revision():
-    def rand_change_id() -> str:
-        return hex(int(random.random() * 1000_000_000))[2:].zfill(8)
+def rand_change_id() -> str:
+    return hex(int(random.random() * 1000_000_000))[2:].zfill(8)
 
-    rev = schemas.increment_revision(change_id=rand_change_id(), rev=None)
+
+def test_revision():
+    rev = schemas.increment_revision(doctype="module:Dummy", change_id=rand_change_id(), rev=None)
     for _ in range(100):
-        new_rev = schemas.increment_revision(change_id=rand_change_id(), rev=rev)
+        new_rev = schemas.increment_revision(doctype="module:Dummy", change_id=rand_change_id(), rev=rev)
         assert new_rev > rev
         rev = new_rev
+
+
+def test_calculate_pow():
+    rand = random.Random(0)
+    for difficulty in range(2, 10):
+        for _ in range(10):
+            change_id = hex(int(rand.random() * 1000_000_000))[2:].zfill(8)
+            pow_str   = schemas.calculate_pow(change_id, difficulty)
+            bits      = schemas.get_pow_difficulty(change_id, pow_str)
+            assert bits >= difficulty, (bits, change_id, pow_str)

@@ -89,7 +89,7 @@ class DocumentWrapper:
         change = docdiff.create_change(parent=self.doc.head, op=op)
 
         parent = (parent and parent.head) or None
-        change = docdiff.create_change(
+        change = docdiff.create(
             parent=parent,
             doctype=schemas.get_doctype(doc),
             op=new_op,
