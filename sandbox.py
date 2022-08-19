@@ -10,6 +10,7 @@ WIF = "5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss"
 async def run():
 
     alpha_node_id = generate_node_id()
+    print(f"XXXX: {alpha_node_id}, {len(alpha_node_id)}, {type(alpha_node_id)}")
     node_alpha = Server(
         storage=ChangeStorage(
             node_id=alpha_node_id

@@ -11,7 +11,7 @@ from kademlia.storage import ForgetfulStorage
 from kademlia.utils import digest
 
 
-def generate_node_id():
+def generate_node_id() -> bytes:
     return digest(random.getrandbits(255))
 
 
@@ -23,19 +23,23 @@ class ChangeStorage(ForgetfulStorage):
 
     def __init__(self, ttl=604800, max_entries=1000000, node_id=None):
         super().__init__(ttl=ttl)
+
         self.max_entries = max_entries
         self.node_id = node_id  # needed for value metric
-
         assert self.node_id is not None, "Missing required node_id!"
 
     def __setitem__(self, key, value):
 
+        # TODO check max value size
+
         # drop invalid changes
         try:
             change = schemas.loads_change(value)
+
             if digest(change.change_id) != key:
                 print(f"INVALID KEY: {digest(key)} != {change.change_id}")
                 return
+
         except schemas.VerificationError as e:
             print(f"INVALID CHANGE: {e}, {value}")
             return
