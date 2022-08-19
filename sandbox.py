@@ -11,7 +11,9 @@ async def run():
 
     alpha_node_id = generate_node_id()
     node_alpha = Server(
-        storage=ChangeStorage(),
+        storage=ChangeStorage(
+            node_id=alpha_node_id
+        ),
         node_id=alpha_node_id
     )
     await node_alpha.listen(5678)
@@ -25,7 +27,9 @@ async def run():
 
     beta_node_id = generate_node_id()
     node_beta = Server(
-        storage=ChangeStorage(),
+        storage=ChangeStorage(
+            node_id=beta_node_id
+        ),
         node_id=beta_node_id
     )
     await node_beta.listen(5679)
