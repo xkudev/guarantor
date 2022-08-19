@@ -69,10 +69,13 @@ def doc_patch(old_doc: schemas.BaseDocument, op: Operation) -> schemas.BaseDocum
 
 
 def make_diff(old_doc_kw: dict, new_doc_kw: dict) -> Operation:
-    diff_op = Operation(opcode=OP_RESET, opdata=new_doc_kw)
-
     # TODO (mb 2022-08-19): More efficient diff operations (and possibly also do chunking
     #   here so lower layers don't need to deal with huge changes).
+    #
+    # pylint: disable=unused-argument ; <- remove when TODO is done
+
+    diff_op = Operation(opcode=OP_RESET, opdata=new_doc_kw)
+
     #
     # import json
     # try:

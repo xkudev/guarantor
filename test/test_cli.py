@@ -16,9 +16,9 @@ import guarantor.cli
 import guarantor.schemas
 
 TEST_ENV_DEFAULTS = {
-    'GUARANTOR_URLS'   : "http://localhost:8021",
-    'GUARANTOR_BIND'   : "0.0.0.0:8021",
-    'GUARANTOR_DB_PATH': "/tmp/guarantor.aofdb",
+    'GUARANTOR_URLS'  : "http://localhost:8021",
+    'GUARANTOR_BIND'  : "0.0.0.0:8021",
+    'GUARANTOR_DB_DIR': "/tmp/guarantor",
 }
 
 
@@ -26,7 +26,9 @@ IS_IN_CI_CONTEXT = os.getenv('IS_IN_CI_CONTEXT') == "1"
 
 
 def test_env_defaults():
-    assert set(TEST_ENV_DEFAULTS) <= set(guarantor.cli.ENV_DEFAULTS_OPTIONS)
+    invalid_env_names = set(TEST_ENV_DEFAULTS) - set(guarantor.cli.ENV_DEFAULTS_OPTIONS)
+    assert not any(invalid_env_names), invalid_env_names
+
     for key, val in TEST_ENV_DEFAULTS.items():
         assert type(val) == type(guarantor.cli.ENV_DEFAULTS_OPTIONS[key])
 
