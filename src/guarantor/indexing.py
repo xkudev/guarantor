@@ -7,18 +7,23 @@ import bisect
 import typing as typ
 import collections
 
-import pydantic
 import sortedcontainers
+
+from guarantor import schemas
 
 
 class IndexDeclaration(typ.NamedTuple):
-    datatype: str
-    fields  : list[str]
+    doctype: str
+    fields : list[str]
 
 
 INDEX_DECLARATIONS = [
     IndexDeclaration(
-        datatype="guarantor.schemas.Identity",
+        doctype="guarantor.schemas:GenericDocument",
+        fields=['title'],
+    ),
+    IndexDeclaration(
+        doctype="guarantor.schemas:Identity",
         fields=["address", "props.name", "props.email", "props.twitter"],
     ),
 ]
@@ -37,31 +42,41 @@ def _iter_terms(field_val: str) -> typ.Iterator[str]:
     if "@" in field_val:
         yield field_val.split("@", 1)[-1]
 
+    for word in field_val.split()[1:]:
+        yield word
+        if word != word.lower():
+            yield word
 
-def _get_field_val(model, field: str) -> str:
+
+def _get_field_val(doc, field: str) -> (str | None):
     if "." in field:
         attrname, rest_key = field.split(".", 1)
-        attrval = getattr(model, attrname)
+        attrval = getattr(doc, attrname)
         while attrval and "." in rest_key:
             parent_key, rest_key = rest_key.split(".", 1)
             attrval = attrval and attrval.get(parent_key)
 
-        return attrval and attrval.get(rest_key)
+        field_val = attrval and attrval.get(rest_key)
     else:
-        attrname = field
-        return getattr(model, attrname)
+        attrname  = field
+        field_val = getattr(doc, attrname, None)
+
+    if field_val is None:
+        return None
+    else:
+        return str(field_val)
 
 
 class IndexItem(typ.NamedTuple):
-    stem    : str
-    model_id: Hash
+    stem: str
+    head: schemas.ChangeId
 
 
 class MatchItem(typ.NamedTuple):
-    stem    : str
-    model_id: Hash
-    datatype: str
-    field   : str
+    stem   : str
+    head   : schemas.ChangeId
+    doctype: str
+    field  : str
 
 
 class Index:
@@ -69,12 +84,9 @@ class Index:
         self._items         = sortedcontainers.SortedList()
         self._pending_items = []
 
-    def add(self, field_val: str, model_id: str) -> None:
-        for term in _iter_terms(field_val):
-            if term is None:
-                continue
-
-            item = IndexItem(term, model_id)
+    def add(self, field_val: str, head: schemas.ChangeId) -> None:
+        for term in set(_iter_terms(field_val)):
+            item = IndexItem(term, head)
             self._pending_items.append(item)
 
     def find(self, search_term: str) -> typ.Iterator[IndexItem]:
@@ -82,7 +94,6 @@ class Index:
             self._items.update(self._pending_items)
             self._pending_items.clear()
 
-        # breakpoint()
         idx = bisect.bisect_left(self._items, IndexItem(search_term, ""))
         while idx < len(self._items):
             item = self._items[idx]
@@ -93,41 +104,38 @@ class Index:
                 break
 
 
-_INDEXES = collections.defaultdict(Index)
+IndexKey = tuple[str, str]
 
-
-def _get_datatype(model_type: type):
-    return model_type.__module__ + "." + model_type.__name__
+_INDEXES: dict[IndexKey, Index] = collections.defaultdict(Index)
 
 
 def query_index(
-    model_type : type,
+    doctype    : str,
     search_term: str,
     fields     : list[str] | None = None,
 ) -> typ.Iterator[MatchItem]:
-    datatype = _get_datatype(model_type)
     for index_decl in INDEX_DECLARATIONS:
-        if index_decl.datatype == datatype:
+        if index_decl.doctype == doctype:
             _fields = set(index_decl.fields)
             if fields is not None:
                 _fields = set(fields) & _fields
 
             for field in _fields:
-                index = _INDEXES[index_decl.datatype, field]
+                index = _INDEXES[index_decl.doctype, field]
                 for idx_item in index.find(search_term):
                     yield MatchItem(
                         stem=idx_item.stem,
-                        model_id=idx_item.model_id,
-                        datatype=index_decl.datatype,
+                        head=idx_item.head,
+                        doctype=index_decl.doctype,
                         field=field,
                     )
 
 
-def update_indexes(model_id: str, model: pydantic.BaseModel) -> list[Hash]:
-    datatype = _get_datatype(model.__class__)
+def update_indexes(head: schemas.ChangeId, doc: schemas.BaseDocument) -> None:
+    doctype = schemas.get_doctype(doc)
     for index_decl in INDEX_DECLARATIONS:
-        if index_decl.datatype == datatype:
+        if index_decl.doctype == doctype:
             for field in index_decl.fields:
-                if field_val := _get_field_val(model, field):
-                    index = _INDEXES[datatype, field]
-                    index.add(field_val, model_id)
+                if field_val := _get_field_val(doc, field):
+                    index = _INDEXES[doctype, field]
+                    index.add(field_val, head)

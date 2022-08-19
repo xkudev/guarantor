@@ -16,14 +16,6 @@ OptionType = typ.Any
 Option = typ.Any
 
 
-ENV_HOME        = os.environ['HOME']
-XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", os.path.join(ENV_HOME, ".config"))
-XDG_DATA_HOME   = os.getenv("XDG_DATA_HOME"  , os.path.join(ENV_HOME, ".local", "share"))
-
-DEFAULT_CONFIG_DIR = os.path.join(XDG_CONFIG_HOME, "guarantor")
-DEFAULT_DATA_DIR   = os.path.join(XDG_DATA_HOME  , "guarantor")
-
-
 class UserError(Exception):
     # def __init__(self, message: str, exit_code: int = 1) -> None:
     #     super().__init__(message, exit_code)
