@@ -100,10 +100,10 @@ def test_signed_identity_invalid_document():
         assert not schemas.verify_identity_envelope(identity_envelope)
 
 
-def test_get_datatype():
+def test_get_doctype():
     model = schemas.Identity(address="moep", props={'foo': "bar"})
-    assert schemas.get_datatype(model           ) == "guarantor.schemas:Identity"
-    assert schemas.get_datatype(schemas.Identity) == "guarantor.schemas:Identity"
+    assert schemas.get_doctype(model           ) == "guarantor.schemas:Identity"
+    assert schemas.get_doctype(schemas.Identity) == "guarantor.schemas:Identity"
 
 
 def rand_change_id() -> str:

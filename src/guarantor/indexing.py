@@ -13,17 +13,17 @@ from guarantor import schemas
 
 
 class IndexDeclaration(typ.NamedTuple):
-    datatype: str
-    fields  : list[str]
+    doctype: str
+    fields : list[str]
 
 
 INDEX_DECLARATIONS = [
     IndexDeclaration(
-        datatype="guarantor.schemas:GenericDocument",
+        doctype="guarantor.schemas:GenericDocument",
         fields=['title'],
     ),
     IndexDeclaration(
-        datatype="guarantor.schemas:Identity",
+        doctype="guarantor.schemas:Identity",
         fields=["address", "props.name", "props.email", "props.twitter"],
     ),
 ]
@@ -68,15 +68,15 @@ def _get_field_val(doc, field: str) -> (str | None):
 
 
 class IndexItem(typ.NamedTuple):
-    stem  : str
-    doc_id: Hash
+    stem: str
+    head: schemas.ChangeId
 
 
 class MatchItem(typ.NamedTuple):
-    stem    : str
-    doc_id  : Hash
-    datatype: str
-    field   : str
+    stem   : str
+    head   : schemas.ChangeId
+    doctype: str
+    field  : str
 
 
 class Index:
@@ -84,13 +84,9 @@ class Index:
         self._items         = sortedcontainers.SortedList()
         self._pending_items = []
 
-    def add(self, field_val: str, doc_id: str) -> None:
+    def add(self, field_val: str, head: schemas.ChangeId) -> None:
         for term in set(_iter_terms(field_val)):
-            # if term is None:
-            #     continue
-            print("???", (field_val, term))
-
-            item = IndexItem(term, doc_id)
+            item = IndexItem(term, head)
             self._pending_items.append(item)
 
     def find(self, search_term: str) -> typ.Iterator[IndexItem]:
@@ -114,32 +110,32 @@ _INDEXES: dict[IndexKey, Index] = collections.defaultdict(Index)
 
 
 def query_index(
-    datatype   : str,
+    doctype    : str,
     search_term: str,
     fields     : list[str] | None = None,
 ) -> typ.Iterator[MatchItem]:
     for index_decl in INDEX_DECLARATIONS:
-        if index_decl.datatype == datatype:
+        if index_decl.doctype == doctype:
             _fields = set(index_decl.fields)
             if fields is not None:
                 _fields = set(fields) & _fields
 
             for field in _fields:
-                index = _INDEXES[index_decl.datatype, field]
+                index = _INDEXES[index_decl.doctype, field]
                 for idx_item in index.find(search_term):
                     yield MatchItem(
                         stem=idx_item.stem,
-                        doc_id=idx_item.doc_id,
-                        datatype=index_decl.datatype,
+                        head=idx_item.head,
+                        doctype=index_decl.doctype,
                         field=field,
                     )
 
 
-def update_indexes(doc_id: str, doc: schemas.BaseDocument) -> None:
-    datatype = schemas.get_doctype(doc)
+def update_indexes(head: schemas.ChangeId, doc: schemas.BaseDocument) -> None:
+    doctype = schemas.get_doctype(doc)
     for index_decl in INDEX_DECLARATIONS:
-        if index_decl.datatype == datatype:
+        if index_decl.doctype == doctype:
             for field in index_decl.fields:
                 if field_val := _get_field_val(doc, field):
-                    index = _INDEXES[datatype, field]
-                    index.add(field_val, doc_id)
+                    index = _INDEXES[doctype, field]
+                    index.add(field_val, head)

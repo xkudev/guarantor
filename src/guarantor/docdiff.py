@@ -48,24 +48,24 @@ def make_change(
     )
 
 
-def apply_diffs(diff: list[Operation], old_doc: dict) -> dict:
-    new_doc = copy.deepcopy(old_doc)
+def apply_diffs(old_doc_kw: dict, diff: list[Operation]) -> dict:
+    new_doc_kw = copy.deepcopy(old_doc_kw)
     for op in diff:
         if op.opcode == OP_RESET:
-            new_doc = op.opdata
+            new_doc_kw = op.opdata
         elif op.opcode == OP_DICT_DIFF:
-            new_doc = dictdiffer.patch(op.opdata, new_doc)
+            new_doc_kw = dictdiffer.patch(op.opdata, new_doc_kw)
         else:
             errmsg = f"doc_patch not implemended for opcode={op.opcode}"
             raise NotImplementedError(errmsg)
 
-    return new_doc
+    return new_doc_kw
 
 
-def doc_patch(op: Operation, old_doc: schemas.BaseDocument) -> schemas.BaseDocument:
-    new_doc   = apply_diffs([op], old_doc.dict())
-    doc_class = old_doc.__class__
-    return doc_class(**new_doc)
+def doc_patch(old_doc: schemas.BaseDocument, op: Operation) -> schemas.BaseDocument:
+    new_doc_kw = apply_diffs(old_doc.dict(), [op])
+    doc_class  = old_doc.__class__
+    return doc_class(**new_doc_kw)
 
 
 def make_diff(old_doc_kw: dict, new_doc_kw: dict) -> Operation:
@@ -79,7 +79,7 @@ def make_diff(old_doc_kw: dict, new_doc_kw: dict) -> Operation:
     #     dd_diff = list(dictdiffer.diff(old_doc_kw, new_doc_kw))
     #     dd_diff = json.loads(json.dumps(dd_diff))
     #     maybe_op = Operation(opcode=OP_DICT_DIFF, data=dd_diff)
-    #     is_valid_op = apply_diffs([maybe_op], old_doc_kw) == new_doc_kw
+    #     is_valid_op = apply_diffs(old_doc_kw, [maybe_op]) == new_doc_kw
     #     if is_valid_op:
     #         diff_op = maybe_op
     #     else:
@@ -97,9 +97,10 @@ def doc_diff(old: schemas.BaseDocument, new: schemas.BaseDocument) -> Operation:
 
 
 def build_document(changes: list[schemas.Change]) -> schemas.BaseDocument:
+    changes.sort()
+
     full_diff: list[Operation] = [Operation(change.opcode, change.opdata) for change in changes]
-    full_diff.reverse()
-    full_doc = apply_diffs(full_diff, old_doc={})
+    full_doc = apply_diffs(old_doc_kw={}, diff=full_diff)
 
     doctype_str   = changes[-1].doctype
     doctype_class = schemas.load_doctype_class(doctype_str)

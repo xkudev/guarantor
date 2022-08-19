@@ -84,6 +84,18 @@ class Change(pydantic.BaseModel):
     #    policy of a node.
     proof_of_work: str
 
+    def __lt__(self, other: 'Change') -> bool:
+        return self.rev < other.rev
+
+    def __le__(self, other: 'Change') -> bool:
+        return self.rev <= other.rev
+
+    def __gt__(self, other: 'Change') -> bool:
+        return self.rev > other.rev
+
+    def __ge__(self, other: 'Change') -> bool:
+        return self.rev >= other.rev
+
 
 CHANGE_ID_FIELDS = ['address', 'doctype', 'opcode', 'opdata', 'parent_id']
 
