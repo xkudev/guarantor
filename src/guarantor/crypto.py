@@ -18,19 +18,20 @@ def generate_wif(master_secret_hex: str | None = None) -> str:
         master_secret = os.urandom(256)
     else:
         master_secret = h2b(master_secret_hex)
+
     key = BTC.keys.bip32_seed(master_secret)
     wif = key.wif()
     assert isinstance(wif, str)
     return wif
 
 
-def validate_address(address: str):
+def validate_address(address: str) -> None:
     """Raises ValueError if given address not valid."""
     if not BTC.parse.p2pkh(address):
         raise ValueError(f"Invalid BTC address: {address}")
 
 
-def validate_wif(wif: str):
+def validate_wif(wif: str) -> None:
     """Raises ValueError if given input cannot be used for signing."""
     if not BTC.parse.wif(wif):
         raise ValueError(f"Invalid WIF: {wif}")

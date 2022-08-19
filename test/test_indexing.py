@@ -24,11 +24,11 @@ def test_index_update():
     indexing.update_indexes(model_a_id, model_a)
     indexing.update_indexes(model_b_id, model_b)
 
-    results = list(indexing.query_index(schemas.Identity, search_term="bob"))
+    results = list(indexing.query_index("guarantor.schemas:Identity", search_term="bob"))
     assert len(results) == 2
     res0 = results[0]
     res1 = results[1]
 
     assert {res0.model_id, res1.model_id} == {bob_hash}
-    assert {res0.field   , res1.field     } == {"props.name", "props.email"}
-    assert {res0.stem    , res1.stem      } == {"bob"       , "bob@mail.com"}
+    assert {res0.field   , res1.field   } == {"props.name", "props.email"}
+    assert {res0.stem    , res1.stem    } == {"bob"       , "bob@mail.com"}

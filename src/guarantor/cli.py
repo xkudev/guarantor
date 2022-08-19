@@ -13,6 +13,7 @@ import datetime as dt
 
 import click
 
+from guarantor import env
 from guarantor import cli_util
 
 try:
@@ -56,20 +57,22 @@ def cli() -> None:
 
 @cli.command()
 @opt("bind"     , "IP:port to serve on"     , default="0.0.0.0:21021")
-@opt("db_url"   , "Database Url"            , default="sqlite:///./guarantor.sqlite3")
+@opt("db_dir"   , "Database Directory"      , default=env.DEFAULT_DB_DIR)
 @opt("no_reload", "Disable realod for serve", default=False)
-def serve(bind: str, db_url: str, no_reload: bool) -> None:
+def serve(bind: str, db_dir: str, no_reload: bool) -> None:
     """Serve API app with uvicorn"""
     # pylint: disable=import-outside-toplevel
     import uvicorn
 
-    from guarantor import database
+    # from guarantor import database
 
     if "://" in bind:
         proto, bind = bind.split("://")
         assert proto == "http"
+
     host, port = bind.strip("/").split(":")
-    database.DB_URL = db_url
+    # database.DB_URL = db_dir
+    # raise Exception("TODO: change_db.DB_URL = db_dir")
     uvicorn.run("guarantor.app:app", host=host, port=int(port), reload=not no_reload)
 
 
@@ -121,8 +124,9 @@ def chat(topic: str, message: str, urls: list[str]):
     from guarantor import schemas
 
     http_client = init_client(urls)
-    iso_ts      = dt.datetime.utcnow().isoformat()
-    result      = http_client.chat(msg=schemas.ChatMessage(topic=topic, iso_ts=iso_ts, text=message))
+
+    iso_ts = dt.datetime.utcnow().isoformat()
+    result = http_client.chat(msg=schemas.ChatMessage(topic=topic, iso_ts=iso_ts, text=message))
     print(result)
 
 

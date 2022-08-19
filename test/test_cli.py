@@ -16,9 +16,9 @@ import guarantor.cli
 import guarantor.schemas
 
 TEST_ENV_DEFAULTS = {
-    'GUARANTOR_URLS'  : "http://localhost:8021",
-    'GUARANTOR_BIND'  : "0.0.0.0:8021",
-    'GUARANTOR_DB_URL': "sqlite:///./guarantor.sqlite3",
+    'GUARANTOR_URLS'   : "http://localhost:8021",
+    'GUARANTOR_BIND'   : "0.0.0.0:8021",
+    'GUARANTOR_DB_PATH': "/tmp/guarantor.aofdb",
 }
 
 
@@ -63,7 +63,6 @@ def server():
 
     serve_env = new_env()
 
-    sp.run(["python", "-m", "alembic", "upgrade", "head"], check=True)
     serve_cmd = ["python", "-m", "guarantor", "serve", "--no-reload"]
 
     if capture_serve_output:
