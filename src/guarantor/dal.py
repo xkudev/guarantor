@@ -14,14 +14,45 @@ from guarantor import indexing
 
 
 class DataAccessLayer:
-    def __init__(self, db_dir: str | pl.Path = env.DEFAULT_DB_DIR, wif: str | None = None):
-        self.store = kvstore.Client(db_dir, flag='c')
-        self.wif   = wif
+    """Middleman between user code and DHT/KVStore.
+
+    In order that user code doesn't need to care about where or how
+    data is stored/retreived or signed/verified, the DataAccessLayer
+    provides a generic API to interact with objects that are stored
+    somewhere (which the user doesn't care about).
+    """
+
+    def __init__(
+        self,
+        wif       : str | None,
+        db_dir    : str | pl.Path = env.DEFAULT_DB_DIR,
+        difficulty: int = schemas.DEFAULT_DIFFICULTY_BITS,
+    ):
+        self.wif        = wif
+        self.kvstore    = kvstore.Client(db_dir, flag='c')
+        self.difficulty = difficulty
+
+    def new(self, clazz: schemas.DocTypeClass, **kwargs) -> 'DocumentWrapper':
+        if self.wif is None:
+            raise Exception("A 'wif' needed to create a new document.")
+
+        doc     = clazz(**kwargs)
+        doc_kw  = doc.dict()
+        op      = docdiff.Operation(docdiff.OP_RESET, doc_kw)
+        doctype = schemas.get_doctype(clazz)
+        change  = docdiff.make_change(
+            doctype=doctype,
+            op=op,
+            parent=None,
+            wif=self.wif,
+            difficulty=self.difficulty,
+        )
+        return DocumentWrapper(dal=self, doc=doc, changes=[change])
 
     def get(self, head: schemas.ChangeId) -> 'DocumentWrapper':
         # TODO (mb 2022-08-07): async, to encourage batching?
-        doc_ref = self.store.get(head)
-        changes = list(self.store.iter_changes(head))
+        doc_ref = self.kvstore.get(head)
+        changes = list(self.kvstore.iter_changes(head))
         doc     = docdiff.build_document(changes)
         assert doc_ref.head == head, f"Mismatched head {doc_ref.head} != {head}"
         return DocumentWrapper(dal=self, doc=doc_ref.doc, head=doc_ref.head, rev=doc_ref.rev)
@@ -46,60 +77,49 @@ class DataAccessLayer:
 
         return DocumentWrapper(dal=self, doc=doc, head=head, rev=rev)
 
-    def _post(self, change: 'DocumentWrapper') -> 'DocumentWrapper':
-        # TODO (mb 2022-07-29): The wif should probably not be passed to the db.
-        #   Instead all code related to the wif should be pulled up here and what
-        #   we post to the db is the already signed change.
-        ref = self.store.post(change)
-        indexing.update_indexes(ref.head_id, doc)
-        return ref
-
-    def new(self, clazz: schemas.DocTypeClass, **kwargs) -> 'DocumentWrapper':
-        obj = clazz(**kwargs)
-        op  = docdiff.Operation(docdiff.OP_RESET, new_doc_kw)
-        return DocumentWrapper(self, obj, change.id)
-
 
 class DocumentWrapper:
 
-    _dal: DataAccessLayer
-    doc : schemas.BaseDocument
-    head: schemas.ChangeId | None
-    rev : schemas.Revision
+    _dal   : DataAccessLayer
+    doc    : schemas.BaseDocument
+    changes: list[schemas.Change]
 
     def __init__(
         self,
-        dal : DataAccessLayer,
-        doc : schemas.BaseDocument,
-        head: schemas.ChangeId | None = None,
-        rev : schemas.Revision = -1,
+        dal    : DataAccessLayer,
+        doc    : schemas.BaseDocument,
+        changes: list[schemas.Change],
     ):
-        self._dal = dal
-        self.doc  = doc
-        self.head = head
-        self.rev  = rev
+        self._dal    = dal
+        self.doc     = doc
+        self.changes = changes
 
     def update(self, **updated_doc_kwargs) -> 'DocumentWrapper':
+        doctype = schemas.get_doctype(self.doc)
+
         old_doc_kw = self.doc.dict()
         new_doc_kw = old_doc_kw.copy()
         for key, val in updated_doc_kwargs.items():
             new_doc_kw[key] = val
 
-        op     = docdiff.make_diff(old=old_doc_kw, new=new_doc_kw)
-        change = docdiff.create_change(parent=self.doc.head, op=op)
-
-        parent = (parent and parent.head) or None
-        change = docdiff.create(
+        op     = docdiff.make_diff(old_doc_kw, new_doc_kw)
+        parent = self.changes[-1]
+        change = docdiff.make_change(
+            doctype=doctype,
+            op=op,
             parent=parent,
-            doctype=schemas.get_doctype(doc),
-            op=new_op,
             wif=self._dal.wif,
+            difficulty=self._dal.difficulty,
         )
-        ref = self._dal.store.post(change)
 
-        new_head = self._dal.post(change)
-        new_rev  = schemas.increment_revision(self.rev, change.change_id)
-        return DocumentWrapper(dal=self._dal, doc=new_doc, head=change.change_id, rev=new_rev)
+        # TODO (mb 2022-08-19): also post to DHT
+        self._dal.kvstore.post(change)
+
+        new_changes = self.changes + [change]
+        new_doc     = docdiff.doc_patch(op=op, doc=self.doc)
+
+        assert docdiff.build_document(new_changes) == new_doc
+        return DocumentWrapper(dal=self._dal, doc=new_doc, changes=new_changes)
 
     def __eq__(self, other: 'DocumentWrapper') -> bool:
-        return self._head == other._head
+        return self.head == other.head

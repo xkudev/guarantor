@@ -25,7 +25,7 @@ from guarantor.dal import DataAccessLayer
 # import enum
 # import pydantic
 
-dal_session = fastapi.Depends(DataAccessLayer)
+ro_dal = fastapi.Depends(lambda: DataAccessLayer(wif=None))
 
 
 logger = logging.getLogger("guarantor.app")
@@ -57,7 +57,7 @@ async def info():
 
 
 @app.post("/v1/identity", response_model=schemas.IdentityResponse, status_code=201)
-async def post_identity(identity: schemas.IdentityEnvelope, dal: DataAccessLayer = dal_session):
+async def post_identity(identity: schemas.IdentityEnvelope, dal: DataAccessLayer = ro_dal):
     # need better way to detect failure, unique ignored -_-
     address          = identity.document.address
     prev_db_identity = dal.find_one(schemas.Identity, address=address)
@@ -78,7 +78,7 @@ async def post_identity(identity: schemas.IdentityEnvelope, dal: DataAccessLayer
 
 
 @app.get("/v1/identity/{address}", response_model=schemas.IdentityResponse)
-async def get_identity(address: str, dal: DataAccessLayer = dal_session):
+async def get_identity(address: str, dal: DataAccessLayer = ro_dal):
     identity = dal.find_one(schemas.Identity, address=address)
     return schemas.IdentityResponse(
         path=f"/v1/identity/{identity.address}",

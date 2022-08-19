@@ -166,7 +166,7 @@ def verify_change(change: Change) -> bool:
         return crypto.verify(change.address, change.signature, message=change_id + change.rev)
     else:
         errmsg = f"change_id {change.change_id} != {change_id}"
-        raise schemas.VerificationError(errmsg)
+        raise VerificationError(errmsg)
 
 
 def loads_change(change_data: bytes) -> Change:
@@ -181,6 +181,13 @@ def loads_change(change_data: bytes) -> Change:
 
 def dumps_change(change: Change) -> bytes:
     return json.dumps(change.dict()).encode("utf-8")
+
+
+# class DocumentReference(typ.NamedTuple):
+#     # in memory reference (not-persisted)
+#     doc : BaseDocument
+#     head: ChangeId
+#     rev : Revision
 
 
 # def verify_document(doc_ref: DocumentReference) -> bool:
@@ -210,13 +217,6 @@ def dumps_change(change: Change) -> bytes:
 #     valid_sig        = verify_document(doc_ref=identity_ref)
 #     is_matching_addr = identity_ref.address == identity_ref.document.address
 #     return is_matching_addr and valid_sig
-
-
-class DocumentReference(typ.NamedTuple):
-    # in memory reference (not-persisted)
-    doc : BaseDocument
-    head: ChangeId
-    rev : Revision
 
 
 class GenericDocument(BaseDocument):
