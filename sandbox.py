@@ -1,7 +1,10 @@
 import asyncio
 from kademlia.network import Server
 from guarantor.dht import ChangeStorage, generate_node_id
+from guarantor import schemas
 
+
+WIF = "5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss"
 
 
 async def run():
@@ -32,14 +35,24 @@ async def run():
             ("0.0.0.0", 5679),
         ]
     )
+
+    input_change = schemas.make_change(
+        wif=WIF,
+        doctype='foo',
+        opcode='bar',
+        opdata={},
+    )
+    input_change_data = schemas.dumps_change(input_change)
+
+    print(f"CHANGE IN: {input_change_data}")
     # print(f"BETA: {str(node_beta.node.id)}")
 
-    await node_alpha.set("my-key", "my awesome value")
+    await node_alpha.set(input_change.change_id, input_change_data)
 
     await asyncio.sleep(10)
 
-    result = await node_beta.get("my-key")
-    print(f"RESULT: {result}")
+    output_change = await node_beta.get(input_change.change_id)
+    print(f"RESULT: {output_change}")
 
 
 asyncio.run(run())

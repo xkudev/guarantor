@@ -5,56 +5,14 @@ import operator
 from collections import OrderedDict
 from abc import abstractmethod, ABC
 import pydantic
+from guarantor import schemas
 from guarantor import crypto
 from kademlia.storage import IStorage
 from kademlia.utils import digest
 
 
-class Change(pydantic.BaseModel):
-    address: str            # affiliation
-    pow_nonce: int          # for proof of work
-    data: str
-    change_id: str          # digest of above fields
-    signature: str          # signature of change_id
-
-
-def get_change_id(address: str, pow_nonce: int, data: str) -> str:
-    return crypto.deterministic_json_hash({
-        'address' : address,
-        'pow_nonce' : pow_nonce,
-        'data': data,
-    })
-
-
-def get_change_hash(change: Change) -> str:
-    return crypto.deterministic_json_hash(change.dict())
-
-
 def generate_node_id():
     return digest(random.getrandbits(255))
-
-
-def create_change(wif: str, pow_nonce: int, data: str) -> Change:
-    address = crypto.get_wif_address(wif)
-    change_id = get_change_id(address, pow_nonce, data)
-    signature = crypto.sign(change_id, wif)
-    return Change(
-        address=address,
-        pow_nonce=pow_nonce,
-        data=data,
-        change_id=change_id,
-        signature=signature,
-    )
-
-
-def validate_change(change: Change):
-    expected_change_id = get_change_id(
-        change.address, change.pow_nonce, change.data
-    )
-
-    assert change.change_id == expected_change_id, f"Invalid change_id {change.change_id} != {expected_change_id}"
-
-    assert crypto.verify(change.address, change.signature, change.change_id), f"Invalid change signature for: {change.change_id}"
 
 
 class ChangeStorage(IStorage):
@@ -67,6 +25,18 @@ class ChangeStorage(IStorage):
         self.ttl = ttl
 
     def __setitem__(self, key, value):
+
+        # drop invalid changes
+        try:
+            change = schemas.loads_change(value)
+            if digest(change.change_id) != key:
+                print(f"INVALID KEY: {digest(key)} != {change.change_id}")
+                return
+        except schemas.VerificationError as e:
+            print(f"INVALID CHANGE: {e}, {value}")
+            return
+
+        # add to storage
         if key in self.data:
             del self.data[key]
         self.data[key] = (time.monotonic(), value)
@@ -74,6 +44,7 @@ class ChangeStorage(IStorage):
 
     def cull(self):
         pass
+        # TODO filter by work
         # for _, _ in self.iter_older_than(self.ttl):
         #     self.data.popitem(last=False)
 

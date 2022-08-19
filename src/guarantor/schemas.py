@@ -180,6 +180,7 @@ def loads_change(change_data: bytes) -> Change:
 
 
 def dumps_change(change: Change) -> bytes:
+    # TODO add compression because try fit in udp
     return json.dumps(change.dict()).encode("utf-8")
 
 
