@@ -31,7 +31,7 @@ class Operation(typ.NamedTuple):
 
 
 def make_change(
-    doctype   : str,
+    doctype   : schemas.DocType,
     op        : Operation,
     parent    : schemas.Change | None,
     wif       : str,
@@ -42,8 +42,8 @@ def make_change(
         doctype=doctype,
         opcode=op.opcode,
         opdata=op.opdata,
-        parent_id=parent and parent.change_id,
-        parent_rev=parent and parent.rev,
+        parent_id=None if parent  is None else parent.change_id,
+        parent_rev=None if parent is None else parent.rev,
         difficulty=difficulty,
     )
 

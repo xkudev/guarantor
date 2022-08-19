@@ -431,7 +431,7 @@ fmt: fmt_isort fmt_sjfmt
 
 ## Shortcut for make fmt lint mypy devtest test
 .PHONY: check
-check: fmt lint mypy test
+check: fmt lint_isort lint_flake8 test lint_pylint mypy
 
 
 ## Start subshell with environ variables set.

@@ -3,6 +3,8 @@
 #
 # Copyright (c) 2022 xkudev (xkudev@pm.me) - MIT License
 # SPDX-License-Identifier: MIT
+from __future__ import annotations
+
 import typing as typ
 import pathlib as pl
 
@@ -32,8 +34,9 @@ class DataAccessLayer:
         self.kvstore    = kvstore.Client(db_dir, flag='c')
         self.difficulty = difficulty
 
-    def new(self, clazz: schemas.DocTypeClass, **kwargs) -> 'DocumentWrapper':
-        if self.wif is None:
+    def new(self, clazz: schemas.DocTypeClass, **kwargs) -> DocumentWrapper:
+        wif = self.wif
+        if wif is None:
             raise Exception("A 'wif' needed to create a new document.")
 
         doc     = clazz(**kwargs)
@@ -44,12 +47,12 @@ class DataAccessLayer:
             doctype=doctype,
             op=op,
             parent=None,
-            wif=self.wif,
+            wif=wif,
             difficulty=self.difficulty,
         )
         return DocumentWrapper(dal=self, doc=doc, changes=[], tmp_changes=[change])
 
-    def get(self, head: schemas.ChangeId) -> 'DocumentWrapper':
+    def get(self, head: schemas.ChangeId) -> DocumentWrapper:
         # TODO (mb 2022-08-07): async, to encourage batching?
         changes = list(self.kvstore.iter_changes(head))
         changes.sort()
@@ -59,17 +62,18 @@ class DataAccessLayer:
         return DocumentWrapper(dal=self, doc=doc, changes=changes, tmp_changes=[])
 
     def _find_matches(self, doctype: str, search_kwargs: dict) -> typ.Iterator[indexing.MatchItem]:
+        # pylint: disable=no-self-use; this will change as we flesh out the indexing module
         if not search_kwargs:
             raise TypeError("Missing keyword arguments: **search_kwargs")
 
         for field, search_term in search_kwargs.items():
             yield from indexing.query_index(doctype, search_term, fields=[field])
 
-    def find(self, doctype: str, **search_kwargs) -> typ.Iterator['DocumentWrapper']:
+    def find(self, doctype: str, **search_kwargs) -> typ.Iterator[DocumentWrapper]:
         for match in self._find_matches(doctype, search_kwargs):
-            yield self.get(match.change_id)
+            yield self.get(match.head)
 
-    def find_one(self, doctype: str, **search_kwargs) -> schemas.BaseDocument | None:
+    def find_one(self, doctype: str, **search_kwargs) -> DocumentWrapper | None:
         result: DocumentWrapper | None = None
         for match in self._find_matches(doctype, search_kwargs):
             maybe_result = self.get(match.head)
@@ -113,7 +117,11 @@ class DocumentWrapper:
 
         _verify_doc_changes(self.doc, all_changes)
 
-    def update(self, **updated_doc_kwargs) -> 'DocumentWrapper':
+    def update(self, **updated_doc_kwargs) -> DocumentWrapper:
+        wif = self._dal.wif
+        if wif is None:
+            raise Exception("A 'wif' needed to update a document.")
+
         doctype = schemas.get_doctype(self.doc)
 
         old_doc_kw = self.doc.dict()
@@ -123,11 +131,12 @@ class DocumentWrapper:
 
         op     = docdiff.make_diff(old_doc_kw, new_doc_kw)
         parent = (self.changes + self.tmp_changes)[-1]
+
         change = docdiff.make_change(
             doctype=doctype,
             op=op,
             parent=parent,
-            wif=self._dal.wif,
+            wif=wif,
             difficulty=self._dal.difficulty,
         )
 
@@ -139,7 +148,7 @@ class DocumentWrapper:
             tmp_changes=self.tmp_changes + [change],
         )
 
-    def save(self) -> 'DocumentWrapper':
+    def save(self) -> DocumentWrapper:
         # TODO (mb 2022-08-19): also post to DHT
         for change in self.tmp_changes:
             self._dal.kvstore.post(change)
@@ -153,7 +162,7 @@ class DocumentWrapper:
             tmp_changes=[],
         )
 
-    def __eq__(self, other: 'DocumentWrapper') -> bool:
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, DocumentWrapper) and self.head == other.head
 
     # TODO (mb 2022-08-19): getattr and setattr

@@ -1,9 +1,6 @@
 import random
 
-from guarantor import crypto
 from guarantor import schemas
-
-from . import fixtures
 
 
 def test_get_doctype():
@@ -36,6 +33,9 @@ def test_calculate_pow():
 
 # TODO (mb 2022-08-19): rewrite signature tests, as now
 #   signatures are on Changes and not documents
+
+# from guarantor import crypto
+# from . import fixtures
 
 # def test_signed_identity():
 #     for wif, right_addr in fixtures.KEYS_FIXTURES:
