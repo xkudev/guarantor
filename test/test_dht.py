@@ -44,13 +44,13 @@ def test_storage_cull_max_entries():
 
 def test_storage_cull_difficulty():
 
-    # ensure change addresses all have zero distance to
-    # node id so that only difficulty is used to filter.
+    # ensure change addresses all have almost zero distance
+    # to node id so that only difficulty is used to filter.
 
     address         = crypto.get_wif_address(WIF)
     address_node_id = digest(address)
 
-    # move some bits so distance is not zero
+    # move some bits so distance is not zero, preventing zero math
     node_id_num     = dht.bin_to_int(address_node_id)
     node_id_num_new = node_id_num ^ (1 << 19)
     node_id         = dht.int_to_bin(node_id_num_new)
