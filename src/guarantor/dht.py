@@ -44,7 +44,7 @@ class ChangeStorage(ForgetfulStorage):
                 logger.warning(f"Change key missmatch: {digest(change.change_id)} != {key}")
                 return
 
-        except schemas.VerificationError as e:
+        except schemas.VerificationError:
             logger.warning(f"Invalid change: {value}")
             return
 
