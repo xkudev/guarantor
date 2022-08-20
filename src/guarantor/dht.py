@@ -7,10 +7,10 @@ from guarantor import schemas
 
 
 def generate_node_id() -> bytes:
-    return digest(random.getrandbits(255))
+    return bytes(digest(random.getrandbits(255)))
 
 
-def get_distance(digest_a, digest_b):
+def get_distance(digest_a, digest_b) -> int:
     return int(digest_a.hex(), 16) ^ int(digest_b.hex(), 16)
 
 
