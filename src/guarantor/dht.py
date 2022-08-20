@@ -1,10 +1,13 @@
 import random
+import logging
 import binascii
 
 from kademlia.utils import digest
 from kademlia.storage import ForgetfulStorage
 
 from guarantor import schemas
+
+logger = logging.getLogger("guarantor.dht")
 
 
 def generate_node_id() -> bytes:
@@ -33,18 +36,16 @@ class ChangeStorage(ForgetfulStorage):
 
     def __setitem__(self, key, value):
 
-        # TODO check max value size
-
         # drop invalid changes
         try:
             change = schemas.loads_change(value)
 
             if digest(change.change_id) != key:
-                print(f"INVALID KEY: {digest(key)} != {change.change_id}")
+                logger.warning(f"Change key missmatch: {digest(change.change_id)} != {key}")
                 return
 
         except schemas.VerificationError as e:
-            print(f"INVALID CHANGE: {e}, {value}")
+            logger.warning(f"Invalid change: {value}")
             return
 
         super().__setitem__(key, value)
