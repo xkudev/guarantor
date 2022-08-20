@@ -298,3 +298,5 @@ fabric.properties
 
 guarantor.db
 guarantor.sqlite3
+
+sandbox.py
