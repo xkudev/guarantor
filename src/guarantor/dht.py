@@ -1,4 +1,5 @@
 import random
+import binascii
 
 from kademlia.utils import digest
 from kademlia.storage import ForgetfulStorage
@@ -10,8 +11,16 @@ def generate_node_id() -> bytes:
     return bytes(digest(random.getrandbits(255)))
 
 
+def bin_to_int(bits: bytes) -> int:
+    return int(bits.hex(), 16)
+
+
+def int_to_bin(num: int) -> bytes:
+    return binascii.unhexlify(hex(num)[2:])
+
+
 def get_distance(digest_a, digest_b) -> int:
-    return int(digest_a.hex(), 16) ^ int(digest_b.hex(), 16)
+    return bin_to_int(digest_a) ^ bin_to_int(digest_b)
 
 
 class ChangeStorage(ForgetfulStorage):
@@ -45,15 +54,18 @@ class ChangeStorage(ForgetfulStorage):
         for key, pair in self.data.items():
             _, value = pair
 
-            change       = schemas.loads_change(value)
-            difficulty   = schemas.get_pow_difficulty(change.change_id, change.proof_of_work)
-            dist_key     = get_distance(key, self.node_id)
-            dist_address = get_distance(key, change.address.encode('utf-8'))
-            dist_reative = min(dist_key, dist_address) / (2 ** difficulty)
+            change                = schemas.loads_change(value)
+            difficulty            = schemas.get_pow_difficulty(change.change_id, change.proof_of_work)
+            change_address_digest = digest(change.address)
+            dist_key              = get_distance(key                  , self.node_id)
+            dist_address          = get_distance(change_address_digest, self.node_id)
+            dist_closest          = min(dist_key, dist_address)
+            dist_weighted         = dist_closest / (2 ** difficulty)
 
-            entries.append((key, dist_reative))
+            entries.append((key, dist_weighted))
 
         entries.sort(key=lambda e: e[1])
+
         while len(entries) > self.max_entries:
             key, dist_reative = entries.pop()
             del self.data[key]
