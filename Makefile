@@ -25,22 +25,46 @@ include Makefile.bootstrapit.make
 ## -- Extra/Custom/Project Specific Tasks --
 
 ## Serve API in development mode
-.PHONY: api_serve
-api_serve:
+.PHONY: serve_api
+serve_api:
 	ENV=$${ENV-dev} \
 		PYTHONPATH=src/:vendor/:$$PYTHONPATH \
 		PATH=$(DEV_ENV)/bin:$$PATH \
-		$(DEV_ENV_PY) -m uvicorn guarantor.app:app --reload
+		$(DEV_ENV_PY) -m uvicorn guarantor.node_app:app --reload
 
 
 ## Serve API in development mode
-.PHONY: api_serve_prod
-api_serve_prod:
-	$(DEV_ENV_PY) -m alembic upgrade head
-	$(DEV_ENV_PY) -m uvicorn guarantor.app:app
+.PHONY: serve_api_prod
+serve_api_prod:
+	$(DEV_ENV_PY) -m uvicorn guarantor.node_app:app
+
+
+## Serve WebApp in development mode
+.PHONY: serve_app
+serve_app:
+	ENV=$${ENV-dev} \
+		PYTHONPATH=src/:vendor/:$$PYTHONPATH \
+		GUARANTOR_DEBUG_STATIC=1 \
+		PATH=$(DEV_ENV)/bin:$$PATH \
+		$(DEV_ENV_PY) -m uvicorn guarantor.web_app:app --reload
+
+
+## Serve API in development mode
+.PHONY: serve_app
+serve_app_prod:
+	$(DEV_ENV_PY) -m uvicorn guarantor.web_app:app
+
 
 
 .PHONY: chitchat
 chitchat:
 	GUARANTOR_URLS="http://127.0.0.1:8000" \
 		guarantor chat --topic default-topic --message "hello world"
+
+
+src/guarantor/static/img/logo_24.png: src/guarantor/static/img/logo.svg
+	rsvg-convert -w 24 -h 24 src/guarantor/static/img/logo.svg -o $@
+
+
+src/guarantor/static/img/logo_48.png: src/guarantor/static/img/logo.svg
+	rsvg-convert -w 48 -h 48 src/guarantor/static/img/logo.svg -o $@

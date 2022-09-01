@@ -13,8 +13,6 @@ from guarantor import schemas
 
 logger = logging.getLogger(__name__)
 
-WIF = typ.Any
-
 
 Path = str
 

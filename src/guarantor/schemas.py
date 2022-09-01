@@ -102,7 +102,7 @@ def derive_change_id(change: Change) -> ChangeId:
 DEFAULT_DIFFICULTY_BITS = 12
 
 
-def calculate_pow(change_id: ChangeId, difficulty: int = DEFAULT_DIFFICULTY_BITS) -> str:
+def calculate_pow(change_id: ChangeId, difficulty: float = DEFAULT_DIFFICULTY_BITS) -> str:
     assert difficulty < 40
 
     target = 2 ** (60 - difficulty)

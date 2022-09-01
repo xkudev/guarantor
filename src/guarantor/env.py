@@ -8,3 +8,5 @@ DEFAULT_CONFIG_DIR = os.path.join(XDG_CONFIG_HOME, "guarantor")
 DEFAULT_DATA_DIR   = os.path.join(XDG_DATA_HOME  , "guarantor")
 
 DEFAULT_DB_DIR = os.path.join(DEFAULT_DATA_DIR, "kvstore")
+
+DEBUG_STATIC = os.getenv('GUARANTOR_DEBUG_STATIC', "0") == "1"

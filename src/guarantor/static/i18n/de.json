@@ -1,0 +1,14 @@
+{
+    "settings"        : "Einstellungen",
+    "identity"        : "Identität",
+    "contract"        : "Vertrag",
+    "contracts"       : "Verträge",
+    "title_registry"  : "Grundbuch",
+    "trust"           : "Vertrauen",
+    "scope_of_trust"  : "Rahmen des Vertrauen",
+    "sot_intent"      : "Ehrbar",
+    "sot_competent"   : "Kompetent",
+    "willing_and_able": "Willens und in der Lage",
+    "lang"            : "Deutsch",
+    "dir"             : "ltr"
+}

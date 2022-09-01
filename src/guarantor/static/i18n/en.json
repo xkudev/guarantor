@@ -1,0 +1,14 @@
+{
+    "settings"        : "Settings",
+    "identity"        : "Identity",
+    "contract"        : "Contract",
+    "contracts"       : "Contracts",
+    "title_registry"  : "Title Registry",
+    "trust"           : "Trust",
+    "scope_of_trust"  : "Scope of Trust",
+    "sot_intent"      : "Honerable",
+    "sot_competent"   : "Competent",
+    "willing_and_able": "Willing and able",
+    "lang"            : "English",
+    "dir"             : "ltr"
+}

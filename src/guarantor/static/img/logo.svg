@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+
+   width="256"
+   height="256"
+   viewBox="0 0 360 360"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   version="1.1">
+   <defs>
+    <path id="shield" d="M 30 96 Q 120 84 180 30 Q 240 84 330 96 Q 330 280 180 335 Q 30 280 30 96 Z"/>
+   </defs>
+    <g style="stroke:#CCC9;stroke-width:54;stroke-linecap:butt;stroke-linejoin:miter;">
+      <use xlink:href="#shield" />
+    </g>
+    <g style="stroke:#000F;stroke-width:30;stroke-linecap:butt;stroke-linejoin:miter;fill:#FB1;">
+      <use xlink:href="#shield" />
+    </g>
+    <path
+       d="m 160 280 q -46 -1 -47 -29 q 1 -29 29 -34 l -2 6 q -21 -5 -18 -20 q 5 -15 18 -33 l 0 9 q -23 -13 -23 -33 v -17 q 1 -39 47 -39 h 19 q 19 0 32 13 l -19 -6 l 42 0 v 15 l -16 5 l 2 -5 q 6 4 7 15 v 19 q -2 37 -48 39 h -17 q -7 -1 -16 -4 l 4 -5 l 0 33 l -8 -7 h 55 q 41 1 42 37 q -1 40 -48 41 z m 29 -22 q 22 -1 22 -17 q -1 -15 -16 -15 h -51 l 14 -5 q -16 10 -16 21 q 1 15 22 16 z m -8 -96 q 18 0 18 -19 v -12 q 0 -19 -19 -19 h -10 q -17 0 -17 20 v 11 q 0 19 18 19 z" />
+</svg>
