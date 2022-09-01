@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+
+    <link rel="icon" sizes="24x24" href="/static/img/logo_24.png?_cb_=13a4abc1">
+    <link rel="icon" sizes="48x48" href="/static/img/logo_48.png?_cb_=af591fb5">
+
+    <style type="text/css">
+        body {background: #999;}
+    </style>
+
+</head>
+<body class="uk-background-secondary" uk-height-viewport>
+{% block header %}
+{# include 'fragments/header.html' #}
+{% endblock %}
+<div class="uk-container uk-flex uk-flex-center">
+    {% block content %} {% endblock %}
+</div>
+
+{% if debug %}
+    <link rel="stylesheet" href="/static/css/uikit.css?_cb_=642a8ee0" />
+    <script src="/static/js/htmx.js?_cb_=94940e9b"></script>
+    <script src="/static/js/uikit.js?_cb_=aaaaaa"></script>
+    <script src="/static/js/uikit-icons.js?_cb_=aaaaaa"></script>
+{% else %}
+    <link rel="stylesheet" href="/static/css/uikit.min.css?_cb_=35338ee0" />
+    <script src="/static/js/htmx.min.js?_cb_=acf43744"></script>
+    <script src="/static/js/uikit.min.js?_cb_=aaaaaa"></script>
+    <script src="/static/js/uikit-icons.min.js?_cb_=aaaaaa"></script>
+{% endif %}
+
+</body>
+</html>
