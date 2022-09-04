@@ -21,7 +21,7 @@ def test_get_distance():
 
 def test_get_changes_after_key():
     node_id = dht.generate_node_id()
-    storage = dht.ChangeStorage(node_id=node_id, ksize=20)
+    storage = dht.GuarantorStorage(node_id=node_id, ksize=20)
     address = crypto.get_wif_address(WIF)
 
     change_id_digests = []
@@ -49,7 +49,7 @@ def test_get_changes_after_key():
 
 def test_get_changes_limit():
     node_id = dht.generate_node_id()
-    storage = dht.ChangeStorage(node_id=node_id, ksize=20)
+    storage = dht.GuarantorStorage(node_id=node_id, ksize=20)
     address = crypto.get_wif_address(WIF)
 
     change_id_digests = []
@@ -74,7 +74,7 @@ def test_get_changes_limit():
 
 def test_get_changes():
     node_id = dht.generate_node_id()
-    storage = dht.ChangeStorage(node_id=node_id)
+    storage = dht.GuarantorStorage(node_id=node_id)
     address = crypto.get_wif_address(WIF)
 
     change_id_digests = []
@@ -101,7 +101,7 @@ def test_storage_cull_max_entries():
     node_id = dht.generate_node_id()
     assert len(node_id) == 20
 
-    storage = dht.ChangeStorage(max_entries=10, node_id=node_id)
+    storage = dht.GuarantorStorage(max_entries=10, node_id=node_id)
 
     for i in range(100):
         change = schemas.make_change(
@@ -132,7 +132,7 @@ def test_storage_cull_difficulty():
     node_id_num_new = node_id_num ^ (1 << 19)
     node_id         = dht.int_to_bin(node_id_num_new)
 
-    storage = dht.ChangeStorage(max_entries=10, node_id=node_id)
+    storage = dht.GuarantorStorage(max_entries=10, node_id=node_id)
 
     entries = []
 

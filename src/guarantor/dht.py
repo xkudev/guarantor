@@ -8,6 +8,7 @@ from kademlia.utils import digest
 from kademlia.network import Server
 from kademlia.storage import ForgetfulStorage
 from kademlia.crawling import NodeSpiderCrawl
+from kademlia.protocol import KademliaProtocol
 
 from guarantor import schemas
 
@@ -46,7 +47,23 @@ def load_change(key: bytes, value: bytes) -> schemas.Change | None:
         return None
 
 
-class ChangeServer(Server):
+class GuarantorProtocol(KademliaProtocol):
+    def rpc_get_changes(self, sender, nodeid, address_digest, after_key=None):
+        logger.info("get changes for %i address digest", int(nodeid.hex(), 16))
+        source = Node(nodeid, sender[0], sender[1])
+        self.welcome_if_new(source)
+        return self.storage.get_changes(address_digest=address_digest, after_key=after_key)
+
+    async def call_get_changes(self, node_to_ask, address_digest, after_key=None):
+        address = (node_to_ask.ip, node_to_ask.port)
+        result  = await self.get_changes(address, self.source_node.id, address_digest, after_key=after_key)
+        return self.handle_call_response(result, node_to_ask)
+
+
+class GuarantorServer(Server):
+
+    protocol_class = GuarantorProtocol
+
     async def set_digest(self, dkey, value):
         result = await super().set_digest(dkey=dkey, value=value)
 
@@ -81,7 +98,7 @@ class ChangeServer(Server):
         return any(await asyncio.gather(*results)) or result
 
 
-class ChangeStorage(ForgetfulStorage):
+class GuarantorStorage(ForgetfulStorage):
     def __init__(self, ksize=20, ttl=604800, max_entries=1000000, node_id=None):
         super().__init__(ttl=ttl)
 
