@@ -19,12 +19,89 @@ def test_get_distance():
     assert distance == expected
 
 
+def test_get_changes_after_key():
+    node_id = dht.generate_node_id()
+    storage = dht.GuarantorStorage(node_id=node_id, ksize=20)
+    address = crypto.get_wif_address(WIF)
+
+    change_id_digests = []
+    for i in range(50):
+        change = schemas.make_change(
+            wif=WIF,
+            doctype=f"{i}",
+            opcode='bar',
+            opdata={},
+            difficulty=(i // 10) + 1,
+        )
+        change_data      = schemas.dumps_change(change)
+        change_id_digest = digest(change.change_id)
+        storage[change_id_digest] = change_data
+        change_id_digests.append(change_id_digest)
+
+    change_id_digests.sort()
+
+    after_key = change_id_digests[5]
+    expected  = change_id_digests[6 : 6 + 20]
+
+    keys = storage.get_changes(address_digest=digest(address), after_key=after_key)
+    assert set(keys) == set(expected)
+
+
+def test_get_changes_limit():
+    node_id = dht.generate_node_id()
+    storage = dht.GuarantorStorage(node_id=node_id, ksize=20)
+    address = crypto.get_wif_address(WIF)
+
+    change_id_digests = []
+    for i in range(30):
+        change = schemas.make_change(
+            wif=WIF,
+            doctype=f"{i}",
+            opcode='bar',
+            opdata={},
+            difficulty=(i // 10) + 1,
+        )
+        change_data      = schemas.dumps_change(change)
+        change_id_digest = digest(change.change_id)
+        storage[change_id_digest] = change_data
+        change_id_digests.append(change_id_digest)
+
+    change_id_digests.sort()
+
+    keys = storage.get_changes(address_digest=digest(address))
+    assert keys == change_id_digests[:20]
+
+
+def test_get_changes():
+    node_id = dht.generate_node_id()
+    storage = dht.GuarantorStorage(node_id=node_id)
+    address = crypto.get_wif_address(WIF)
+
+    change_id_digests = []
+    for i in range(10):
+        change = schemas.make_change(
+            wif=WIF,
+            doctype=f"{i}",
+            opcode='bar',
+            opdata={},
+            difficulty=(i // 10) + 1,
+        )
+        change_data      = schemas.dumps_change(change)
+        change_id_digest = digest(change.change_id)
+        storage[change_id_digest] = change_data
+        change_id_digests.append(change_id_digest)
+    change_id_digests.sort()
+
+    keys = storage.get_changes(address_digest=digest(address))
+    assert keys == change_id_digests
+
+
 def test_storage_cull_max_entries():
 
     node_id = dht.generate_node_id()
     assert len(node_id) == 20
 
-    storage = dht.ChangeStorage(max_entries=10, node_id=node_id)
+    storage = dht.GuarantorStorage(max_entries=10, node_id=node_id)
 
     for i in range(100):
         change = schemas.make_change(
@@ -55,7 +132,7 @@ def test_storage_cull_difficulty():
     node_id_num_new = node_id_num ^ (1 << 19)
     node_id         = dht.int_to_bin(node_id_num_new)
 
-    storage = dht.ChangeStorage(max_entries=10, node_id=node_id)
+    storage = dht.GuarantorStorage(max_entries=10, node_id=node_id)
 
     entries = []
 
