@@ -30,18 +30,19 @@ def get_distance(digest_a, digest_b) -> int:
     return bin_to_int(digest_a) ^ bin_to_int(digest_b)
 
 
-def load_change(key, value):
+def load_change(key: bytes, value: bytes) -> schemas.Change | None:
     try:
         change = schemas.loads_change(value)
 
         if digest(change.change_id) != key:
-            logger.warning(f"Change key missmatch: {digest(change.change_id)} != {key}")
+
+            logger.warning(f"Change key missmatch: {digest(change.change_id).hex()} != {key.hex()}")
             return None
 
         return change
 
     except schemas.VerificationError:
-        logger.warning(f"Invalid change: {value}")
+        logger.warning(f"Invalid change: {value.hex()}")
         return None
 
 
@@ -51,7 +52,7 @@ class ChangeServer(Server):
 
         # Modify the set_digest method to additionally
         # store changes close to the change.address digest.
-        # This enables finding all changes for a giving address.
+        # This enables finding all changes for a given address.
 
         change = load_change(dkey, value)
         if not change:
@@ -60,7 +61,7 @@ class ChangeServer(Server):
         address_digest = digest(change.address)
         node           = Node(address_digest)
 
-        # code below if copied verbatim from Server.set_digest
+        # code below is copied verbatim from Server.set_digest
 
         nearest = self.protocol.router.find_neighbors(node)
         if not nearest:
